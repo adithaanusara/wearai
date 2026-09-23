@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# builds
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# env files (keep the example)
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# logs and OS files
+*.log
+.DS_Store
+
+# editor and local notes
+.vscode/
+CLAUDE.md
