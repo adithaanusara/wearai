@@ -3,10 +3,12 @@ import { notFound } from 'next/navigation';
 import { BuyBox } from '@/components/product/BuyBox';
 import { ColourSwatches } from '@/components/product/ColourSwatches';
 import { ProductGallery } from '@/components/product/ProductGallery';
+import { ProductReviews } from '@/components/product/ProductReviews';
+import { RelatedProducts } from '@/components/product/RelatedProducts';
 import { Container } from '@/components/ui/Container';
 import { Stars } from '@/components/ui/Stars';
 import { formatPrice } from '@/lib/format';
-import { getColourways, getProductBySlug } from '@/lib/products';
+import { getColourways, getProductBySlug, getRelatedProducts } from '@/lib/products';
 import { averageRating, getReviews } from '@/lib/reviews';
 
 interface ProductPageProps {
@@ -74,6 +76,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </ul>
           </div>
         </div>
+      </div>
+
+      <div className="mt-16 space-y-16">
+        <ProductReviews reviews={reviews} rating={rating} />
+        <RelatedProducts products={getRelatedProducts(product)} />
       </div>
     </Container>
   );
