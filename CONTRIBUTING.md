@@ -21,5 +21,6 @@ fix(cart): keep quantity when drawer closes
 
 ```bash
 pnpm lint
+pnpm test
 pnpm build
 ```
