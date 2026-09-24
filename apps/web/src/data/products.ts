@@ -26,6 +26,7 @@ export const products: Product[] = [
     images,
     sizes: ['XS', 'S', 'M', 'L', 'XL'],
     isNew: true,
+    isBestSeller: true,
   },
   {
     id: 'w-hood-01',
@@ -38,6 +39,7 @@ export const products: Product[] = [
     images,
     sizes: ['S', 'M', 'L'],
     isNew: false,
+    isBestSeller: true,
   },
   {
     id: 'w-short-01',
@@ -47,6 +49,7 @@ export const products: Product[] = [
     category: 'shorts',
     colour: 'Black',
     price: 3950,
+    compareAtPrice: 4950,
     images,
     sizes: ['XS', 'S', 'M', 'L'],
     isNew: false,
@@ -74,6 +77,7 @@ export const products: Product[] = [
     images,
     sizes: ['S', 'M', 'L', 'XL'],
     isNew: true,
+    isBestSeller: true,
   },
   {
     id: 'm-short-01',
@@ -83,6 +87,7 @@ export const products: Product[] = [
     category: 'shorts',
     colour: 'Black',
     price: 4250,
+    compareAtPrice: 5250,
     images,
     sizes: ['S', 'M', 'L', 'XL'],
     isNew: false,
@@ -110,6 +115,7 @@ export const products: Product[] = [
     images,
     sizes: ['S', 'M', 'L', 'XL'],
     isNew: false,
+    isBestSeller: true,
   },
   {
     id: 'm-tee-02',
@@ -134,6 +140,7 @@ export const products: Product[] = [
     images,
     sizes: ['One Size'],
     isNew: true,
+    isBestSeller: true,
   },
   {
     id: 'a-cap-01',
@@ -143,6 +150,7 @@ export const products: Product[] = [
     category: 'caps',
     colour: 'Black',
     price: 2450,
+    compareAtPrice: 3250,
     images,
     sizes: ['One Size'],
     isNew: false,

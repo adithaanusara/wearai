@@ -20,8 +20,11 @@ export interface Product {
   colour: string;
   /** Price in whole LKR. */
   price: number;
+  /** Original price in whole LKR, set when the product is on sale. */
+  compareAtPrice?: number;
   /** First image is the default; the second is shown on hover. */
   images: [string, string];
   sizes: string[];
   isNew: boolean;
+  isBestSeller?: boolean;
 }
