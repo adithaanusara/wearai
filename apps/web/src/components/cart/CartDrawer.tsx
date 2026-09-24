@@ -2,14 +2,16 @@
 
 import { CartLineItem } from '@/components/cart/CartLineItem';
 import { useCart } from '@/components/cart/CartProvider';
+import { ProductCard } from '@/components/product/ProductCard';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Drawer } from '@/components/ui/Drawer';
-import { cartSubtotal, resolveCartLines } from '@/lib/cart';
+import { cartSubtotal, getCartRecommendations, resolveCartLines } from '@/lib/cart';
 import { formatPrice } from '@/lib/format';
 
 export function CartDrawer() {
   const { items, isOpen, closeCart } = useCart();
   const lines = resolveCartLines(items);
+  const suggestions = getCartRecommendations(lines);
 
   return (
     <Drawer open={isOpen} onClose={closeCart} title="Cart" side="right">
@@ -28,6 +30,24 @@ export function CartDrawer() {
                 <CartLineItem key={`${line.item.productId}-${line.item.size}`} line={line} />
               ))}
             </ul>
+
+            {suggestions.length > 0 && (
+              <section aria-labelledby="cart-suggestions" className="border-border border-t py-6">
+                <h3
+                  id="cart-suggestions"
+                  className="mb-4 text-xs font-medium tracking-wide uppercase"
+                >
+                  You may also like
+                </h3>
+                <ul className="grid grid-cols-2 gap-4">
+                  {suggestions.map((product) => (
+                    <li key={product.id}>
+                      <ProductCard product={product} imageSizes="180px" />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
 
           <div className="border-border space-y-4 border-t p-(--gutter)">
