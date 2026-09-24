@@ -31,9 +31,17 @@ export function MobileMenu({ items }: { items: NavItem[] }) {
     }
     document.addEventListener('keydown', onKeyDown);
 
+    // The menu is hidden from the lg breakpoint up, so it must not keep the page locked there.
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    function onBreakpointChange(event: MediaQueryListEvent) {
+      if (event.matches) setOpenedAt(null);
+    }
+    desktop.addEventListener('change', onBreakpointChange);
+
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', onKeyDown);
+      desktop.removeEventListener('change', onBreakpointChange);
     };
   }, [open]);
 
