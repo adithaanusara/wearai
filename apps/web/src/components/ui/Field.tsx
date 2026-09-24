@@ -30,20 +30,27 @@ interface FieldProps extends ComponentPropsWithoutRef<'input'> {
   name: string;
   label: string;
   error?: string;
+  /** Content placed inside the right edge of the input, such as a show/hide button. */
+  endAdornment?: ReactNode;
 }
 
-export function Field({ name, label, error, ...props }: FieldProps) {
+export function Field({ name, label, error, endAdornment, ...props }: FieldProps) {
   const id = `field-${name}`;
   return (
     <FieldShell id={id} label={label} error={error}>
-      <input
-        id={id}
-        name={name}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className={controlClass}
-        {...props}
-      />
+      <div className="relative">
+        <input
+          id={id}
+          name={name}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={`${controlClass} ${endAdornment ? 'pr-16' : ''}`}
+          {...props}
+        />
+        {endAdornment && (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3">{endAdornment}</div>
+        )}
+      </div>
     </FieldShell>
   );
 }
