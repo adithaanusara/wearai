@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import { AccountLink } from '@/components/account/AccountLink';
 import { CartButton } from '@/components/cart/CartButton';
 import { DesktopNav } from '@/components/layout/DesktopNav';
 import { MobileMenu } from '@/components/layout/MobileMenu';
 import { Container } from '@/components/ui/Container';
-import { SearchIcon, UserIcon } from '@/components/ui/icons';
+import { SearchIcon } from '@/components/ui/icons';
 import { siteConfig } from '@/config/site';
 import { mainNav } from '@/data/navigation';
 
@@ -24,9 +25,7 @@ export function Header() {
           <Link href="/search" aria-label="Search" className="p-2">
             <SearchIcon />
           </Link>
-          <Link href="/account" aria-label="Account" className="hidden p-2 sm:block">
-            <UserIcon />
-          </Link>
+          <AccountLink className="hidden sm:block" />
           <CartButton />
         </div>
       </Container>
