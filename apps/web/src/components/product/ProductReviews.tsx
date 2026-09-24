@@ -1,17 +1,11 @@
 import { Stars } from '@/components/ui/Stars';
 import type { Review } from '@/data/reviews';
+import { formatDate } from '@/lib/format';
 
 interface ProductReviewsProps {
   reviews: Review[];
   rating: number | null;
 }
-
-const dateFormat = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
 
 export function ProductReviews({ reviews, rating }: ProductReviewsProps) {
   return (
@@ -37,7 +31,7 @@ export function ProductReviews({ reviews, rating }: ProductReviewsProps) {
                 <h3 className="text-sm font-medium">{review.title}</h3>
                 <p className="text-sm">{review.body}</p>
                 <p className="text-muted text-xs">
-                  {review.author} · {dateFormat.format(new Date(review.date))}
+                  {review.author} · {formatDate(review.date)}
                 </p>
               </li>
             ))}
