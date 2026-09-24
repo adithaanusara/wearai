@@ -1,6 +1,7 @@
 import { Hero } from '@/components/home/Hero';
 import { LatestStyles } from '@/components/home/LatestStyles';
 import { PromoBanner } from '@/components/home/PromoBanner';
+import { ShopByCategory } from '@/components/home/ShopByCategory';
 
 export default function Home() {
   return (
@@ -8,6 +9,7 @@ export default function Home() {
       <Hero />
       <LatestStyles />
       <PromoBanner />
+      <ShopByCategory />
     </>
   );
 }
