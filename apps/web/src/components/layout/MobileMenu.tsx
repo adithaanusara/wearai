@@ -63,7 +63,7 @@ export function MobileMenu({ items }: { items: NavItem[] }) {
         <nav
           id="mobile-menu"
           aria-label="Main"
-          className="bg-bg fixed inset-x-0 top-16 bottom-0 overflow-y-auto"
+          className="bg-bg fixed inset-x-0 top-(--header-height) bottom-0 overflow-y-auto"
         >
           <ul className="divide-border divide-y px-(--gutter)">
             {items.map((item) => (

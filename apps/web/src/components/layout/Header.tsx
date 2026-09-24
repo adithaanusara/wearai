@@ -12,7 +12,7 @@ interface HeaderProps {
 export function Header({ cartCount = 0 }: HeaderProps) {
   return (
     <header className="border-border bg-bg sticky top-0 z-40 border-b">
-      <Container className="grid h-16 grid-cols-[1fr_auto_1fr] items-center">
+      <Container className="grid h-(--header-height) grid-cols-[1fr_auto_1fr] items-center">
         <div className="flex items-center">
           <MobileMenu items={mainNav} />
           <nav aria-label="Main" className="hidden lg:block">
