@@ -3,9 +3,6 @@ import { Inter } from 'next/font/google';
 import { siteConfig } from '@/config/site';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CartProvider } from '@/components/cart/CartProvider';
-import { Footer } from '@/components/layout/Footer';
-import { Header } from '@/components/layout/Header';
-import { NewsletterSection } from '@/components/layout/NewsletterSection';
 import { SkipLink } from '@/components/layout/SkipLink';
 import './globals.css';
 
@@ -25,12 +22,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <body className="flex min-h-full flex-col">
         <CartProvider>
           <SkipLink />
-          <Header />
-          <main id="main" className="flex flex-1 flex-col">
-            {children}
-          </main>
-          <NewsletterSection />
-          <Footer />
+          {children}
           <CartDrawer />
         </CartProvider>
       </body>

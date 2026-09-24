@@ -28,6 +28,7 @@ interface CartContextValue {
   addItem: (productId: string, size: string) => void;
   removeItem: (productId: string, size: string) => void;
   setQuantity: (productId: string, size: string, quantity: number) => void;
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -53,6 +54,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem: (productId, size) => dispatchCart({ type: 'remove', productId, size }),
       setQuantity: (productId, size, quantity) =>
         dispatchCart({ type: 'setQuantity', productId, size, quantity }),
+      clearCart: () => dispatchCart({ type: 'clear' }),
     }),
     [items, isOpen, openCart, closeCart],
   );
