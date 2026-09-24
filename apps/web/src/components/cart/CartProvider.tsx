@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import {
   createContext,
   useCallback,
@@ -33,10 +34,13 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const items = useSyncExternalStore(subscribeToCart, getCartSnapshot, getServerCartSnapshot);
-  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  // The drawer counts as open only on the page it was opened from, so navigating closes it.
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
+  const isOpen = openedAt === pathname;
 
-  const openCart = useCallback(() => setIsOpen(true), []);
-  const closeCart = useCallback(() => setIsOpen(false), []);
+  const openCart = useCallback(() => setOpenedAt(pathname), [pathname]);
+  const closeCart = useCallback(() => setOpenedAt(null), []);
 
   const value = useMemo<CartContextValue>(
     () => ({
