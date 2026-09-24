@@ -5,7 +5,7 @@ import { categoryBlocks } from '@/data/home';
 
 export function ShopByCategory() {
   return (
-    <section aria-labelledby="category-title" className="bg-surface py-12 md:py-16">
+    <section aria-labelledby="category-title" className="py-12 md:py-16">
       <Container className="space-y-12">
         <h2 id="category-title" className="text-2xl font-bold tracking-wide uppercase md:text-3xl">
           Shop by category

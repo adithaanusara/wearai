@@ -29,7 +29,7 @@ export function ShopByActivity() {
   }
 
   return (
-    <section aria-labelledby="activity-title" className="py-12 md:py-16">
+    <section aria-labelledby="activity-title" className="bg-surface py-12 md:py-16">
       <Container>
         <h2 id="activity-title" className="text-2xl font-bold tracking-wide uppercase md:text-3xl">
           Shop by activity

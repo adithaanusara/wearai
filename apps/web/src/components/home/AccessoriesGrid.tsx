@@ -7,7 +7,7 @@ export function AccessoriesGrid() {
   const accessories = products.filter((product) => product.gender === 'unisex');
 
   return (
-    <section aria-labelledby="accessories-title" className="bg-surface py-12 md:py-16">
+    <section aria-labelledby="accessories-title" className="py-12 md:py-16">
       <Container>
         <div className="mb-6 flex items-end justify-between gap-4">
           <h2
