@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { BuyBox } from '@/components/product/BuyBox';
 import { ColourSwatches } from '@/components/product/ColourSwatches';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { Container } from '@/components/ui/Container';
@@ -61,6 +62,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
 
           <ColourSwatches current={product} colourways={colourways} />
+
+          <BuyBox key={product.id} product={product} />
 
           <div className="space-y-4 text-sm">
             <p>{product.description}</p>
