@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { useCart } from '@/components/cart/CartProvider';
 import { SizeGuide } from '@/components/product/SizeGuide';
 import type { Product } from '@/types/product';
 
@@ -10,17 +11,19 @@ export function BuyBox({ product }: { product: Product }) {
   const [size, setSize] = useState<string | null>(
     product.sizes.length === 1 ? product.sizes[0] : null,
   );
-  const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { addItem, openCart } = useCart();
   const hasSizeChart = !product.sizes.includes(oneSize);
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (!size) {
-      setMessage({ kind: 'error', text: 'Please select a size.' });
+      setError('Please select a size.');
       return;
     }
-    // The cart itself arrives with the cart drawer; until then this only confirms the choice.
-    setMessage({ kind: 'success', text: `Added ${product.name}, size ${size}.` });
+    addItem(product.id, size);
+    setError(null);
+    openCart();
   }
 
   return (
@@ -43,7 +46,7 @@ export function BuyBox({ product }: { product: Product }) {
                 checked={size === option}
                 onChange={() => {
                   setSize(option);
-                  setMessage(null);
+                  setError(null);
                 }}
               />
               <span className="border-border peer-checked:bg-text peer-checked:text-bg peer-checked:border-text peer-focus-visible:outline-text block min-w-12 rounded-sm border px-4 py-3 text-center text-sm peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2">
@@ -61,11 +64,8 @@ export function BuyBox({ product }: { product: Product }) {
         Add to cart
       </button>
 
-      <p
-        role="status"
-        className={`min-h-5 text-sm ${message?.kind === 'error' ? 'text-error' : 'text-success'}`}
-      >
-        {message?.text}
+      <p role="alert" className="text-error min-h-5 text-sm">
+        {error}
       </p>
     </form>
   );
