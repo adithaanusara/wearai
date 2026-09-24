@@ -36,7 +36,6 @@ export const mainNav: NavItem[] = [
         { label: 'Leggings', href: '/collections/women-leggings' },
         { label: 'Hoodies', href: '/collections/women-hoodies' },
         { label: 'Shorts', href: '/collections/women-shorts' },
-        { label: 'Sports Bras', href: '/collections/women-sports-bras' },
       ],
       tiles: [
         { title: 'New Arrivals', href: '/collections/women-new', image: placeholder },
@@ -59,7 +58,6 @@ export const mainNav: NavItem[] = [
         { label: 'Shorts', href: '/collections/men-shorts' },
         { label: 'Hoodies', href: '/collections/men-hoodies' },
         { label: 'Joggers', href: '/collections/men-joggers' },
-        { label: 'Tank Tops', href: '/collections/men-tank-tops' },
       ],
       tiles: [
         { title: 'New Arrivals', href: '/collections/men-new', image: placeholder },
