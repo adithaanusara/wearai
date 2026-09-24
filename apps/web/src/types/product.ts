@@ -1,6 +1,15 @@
 export type Gender = 'women' | 'men' | 'unisex';
 
-export type Category = 't-shirts' | 'leggings' | 'hoodies' | 'shorts' | 'joggers' | 'bags' | 'caps';
+export type Category =
+  | 't-shirts'
+  | 'leggings'
+  | 'hoodies'
+  | 'shorts'
+  | 'joggers'
+  | 'bags'
+  | 'caps'
+  | 'socks'
+  | 'bottles';
 
 export interface Product {
   id: string;

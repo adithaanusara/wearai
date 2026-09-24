@@ -1,6 +1,9 @@
+import { AccessoriesGrid } from '@/components/home/AccessoriesGrid';
 import { Hero } from '@/components/home/Hero';
 import { LatestStyles } from '@/components/home/LatestStyles';
 import { PromoBanner } from '@/components/home/PromoBanner';
+import { ShopByActivity } from '@/components/home/ShopByActivity';
+import { ShopByCategory } from '@/components/home/ShopByCategory';
 
 export default function Home() {
   return (
@@ -8,6 +11,9 @@ export default function Home() {
       <Hero />
       <LatestStyles />
       <PromoBanner />
+      <ShopByCategory />
+      <ShopByActivity />
+      <AccessoriesGrid />
     </>
   );
 }
