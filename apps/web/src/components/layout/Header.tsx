@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { DesktopNav } from '@/components/layout/DesktopNav';
 import { MobileMenu } from '@/components/layout/MobileMenu';
 import { Container } from '@/components/ui/Container';
 import { BagIcon, SearchIcon, UserIcon } from '@/components/ui/icons';
@@ -15,20 +16,7 @@ export function Header({ cartCount = 0 }: HeaderProps) {
       <Container className="grid h-(--header-height) grid-cols-[1fr_auto_1fr] items-center">
         <div className="flex items-center">
           <MobileMenu items={mainNav} />
-          <nav aria-label="Main" className="hidden lg:block">
-            <ul className="flex gap-8">
-              {mainNav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="text-xs font-medium tracking-wide uppercase hover:underline"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <DesktopNav items={mainNav} />
         </div>
 
         <Link href="/" className="text-lg font-bold tracking-wide uppercase">
