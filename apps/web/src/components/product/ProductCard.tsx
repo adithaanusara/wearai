@@ -47,7 +47,12 @@ export function ProductCard({
           </Link>
         </h3>
         <p className="text-muted text-sm">{product.colour}</p>
-        <p className="text-sm">{formatPrice(product.price)}</p>
+        <p className="text-sm">
+          {product.compareAtPrice !== undefined && (
+            <s className="text-muted mr-2">{formatPrice(product.compareAtPrice)}</s>
+          )}
+          {formatPrice(product.price)}
+        </p>
       </div>
     </article>
   );
