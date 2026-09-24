@@ -14,6 +14,8 @@ export type Category =
 export interface Product {
   id: string;
   slug: string;
+  /** Products with the same styleId are the same item in different colours. */
+  styleId: string;
   name: string;
   gender: Gender;
   category: Category;
@@ -27,4 +29,6 @@ export interface Product {
   sizes: string[];
   isNew: boolean;
   isBestSeller?: boolean;
+  description: string;
+  details: string[];
 }

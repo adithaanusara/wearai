@@ -12,6 +12,7 @@ import type { Product } from '@/types/product';
 function product(overrides: Partial<Product> & Pick<Product, 'id'>): Product {
   return {
     slug: overrides.id,
+    styleId: overrides.id,
     name: overrides.id,
     gender: 'women',
     category: 't-shirts',
@@ -20,6 +21,8 @@ function product(overrides: Partial<Product> & Pick<Product, 'id'>): Product {
     images: ['/a.svg', '/b.svg'],
     sizes: ['M'],
     isNew: false,
+    description: '',
+    details: [],
     ...overrides,
   };
 }
