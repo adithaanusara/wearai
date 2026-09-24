@@ -58,3 +58,31 @@ export const ChevronIcon = (props: IconProps) => (
     <path d="M6 9l6 6 6-6" />
   </Icon>
 );
+
+export const InstagramIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="4" y="4" width="16" height="16" rx="4" />
+    <circle cx="12" cy="12" r="3.5" />
+    <circle cx="16.8" cy="7.2" r="0.5" />
+  </Icon>
+);
+
+export const FacebookIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M14 21v-8h3l.5-3.5H14V7.5c0-1 .5-1.8 1.9-1.8H17.6V2.6C17.3 2.5 16.3 2.4 15.2 2.4 12.7 2.4 10.5 3.9 10.5 7v2.5H7.5V13h3v8" />
+  </Icon>
+);
+
+export const TikTokIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M14 3v11.5a3.5 3.5 0 11-3.5-3.5" />
+    <path d="M14 3c.3 2.5 2 4.2 5 4.5" />
+  </Icon>
+);
+
+export const YouTubeIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="6" width="18" height="12" rx="3" />
+    <path d="M10.5 9.5v5l4.5-2.5z" />
+  </Icon>
+);

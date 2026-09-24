@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { siteConfig } from '@/config/site';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
+import { NewsletterSection } from '@/components/layout/NewsletterSection';
 import { SkipLink } from '@/components/layout/SkipLink';
 import './globals.css';
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <main id="main" className="flex flex-1 flex-col">
           {children}
         </main>
+        <NewsletterSection />
         <Footer />
       </body>
     </html>
