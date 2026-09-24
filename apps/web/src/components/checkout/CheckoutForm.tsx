@@ -6,7 +6,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { useCart } from '@/components/cart/CartProvider';
 import { OrderSummary } from '@/components/cart/OrderSummary';
 import { ChoiceGroup } from '@/components/checkout/ChoiceGroup';
-import { Field, SelectField } from '@/components/checkout/Field';
+import { Field, SelectField } from '@/components/ui/Field';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { provinces } from '@/data/locations';
 import { deliveryMethods, paymentMethods } from '@/data/shipping';
