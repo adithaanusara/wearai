@@ -4,6 +4,7 @@ import {
   cartCount,
   cartReducer,
   cartSubtotal,
+  getCartRecommendations,
   parseStoredCart,
   resolveCartLines,
 } from '@/lib/cart';
@@ -116,5 +117,27 @@ describe('parseStoredCart', () => {
   it('clamps stored quantities', () => {
     const raw = JSON.stringify([{ productId: 'w-tee-01', size: 'M', quantity: 500 }]);
     expect(parseStoredCart(raw)[0].quantity).toBe(MAX_QUANTITY);
+  });
+});
+
+describe('getCartRecommendations', () => {
+  it('returns nothing for an empty cart', () => {
+    expect(getCartRecommendations([])).toEqual([]);
+  });
+
+  it('suggests other styles, never ones already in the cart', () => {
+    const lines = resolveCartLines([line('w-leg-01', 'M')]);
+    const suggestions = getCartRecommendations(lines, 3);
+    expect(suggestions).toHaveLength(3);
+    expect(suggestions.some((product) => product.styleId === 'seamless-high-rise-leggings')).toBe(
+      false,
+    );
+  });
+
+  it('lists each style once and starts with the same category', () => {
+    const lines = resolveCartLines([line('w-leg-01', 'M')]);
+    const suggestions = getCartRecommendations(lines, 5);
+    expect(new Set(suggestions.map((product) => product.styleId)).size).toBe(suggestions.length);
+    expect(suggestions[0].category).toBe('leggings');
   });
 });

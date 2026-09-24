@@ -85,3 +85,24 @@ export function parseStoredCart(raw: string | null): CartItem[] {
     return [];
   }
 }
+
+/** Suggests styles the shopper does not have yet: same category as the first item, then best sellers. */
+export function getCartRecommendations(lines: CartLine[], limit = 2): Product[] {
+  const first = lines[0]?.product;
+  if (!first) return [];
+
+  const inCart = new Set(lines.map((line) => line.product.styleId));
+  const ranked = [
+    ...products.filter((product) => product.category === first.category),
+    ...products.filter((product) => product.isBestSeller),
+    ...products,
+  ];
+
+  const picked = new Map<string, Product>();
+  for (const product of ranked) {
+    if (inCart.has(product.styleId) || picked.has(product.styleId)) continue;
+    picked.set(product.styleId, product);
+    if (picked.size === limit) break;
+  }
+  return [...picked.values()];
+}
