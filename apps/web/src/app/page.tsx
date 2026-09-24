@@ -1,9 +1,17 @@
+import { Container } from '@/components/ui/Container';
 import { siteConfig } from '@/config/site';
 
 export default function Home() {
   return (
-    <main className="flex flex-1 items-center justify-center">
-      <h1 className="text-3xl font-bold uppercase tracking-wide">{siteConfig.name}</h1>
-    </main>
+    <Container className="flex flex-1 flex-col items-center justify-center gap-4 py-24">
+      <h1 className="text-4xl font-bold tracking-wide uppercase">{siteConfig.name}</h1>
+      <p className="text-muted">{siteConfig.description}</p>
+      <a
+        href="#main"
+        className="bg-text text-bg rounded-sm px-6 py-3 text-sm font-medium tracking-wide uppercase"
+      >
+        Shop now
+      </a>
+    </Container>
   );
 }
