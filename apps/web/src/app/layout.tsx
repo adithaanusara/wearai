@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { siteConfig } from '@/config/site';
+import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CartProvider } from '@/components/cart/CartProvider';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           </main>
           <NewsletterSection />
           <Footer />
+          <CartDrawer />
         </CartProvider>
       </body>
     </html>
