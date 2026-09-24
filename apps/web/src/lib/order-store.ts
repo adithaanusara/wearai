@@ -2,6 +2,12 @@ import type { PlacedOrder } from '@/types/order';
 
 const STORAGE_KEY = 'wearai-last-order';
 
+/** A short, readable reference such as WA-LM3K9Q2X. The API will issue real order numbers later. */
+export function createOrderReference(now: number = Date.now()): string {
+  const random = Math.random().toString(36).slice(2, 4).toUpperCase();
+  return `WA-${now.toString(36).toUpperCase()}${random}`;
+}
+
 /** Keeps the last order for the confirmation page until the real API stores orders. */
 export function saveOrder(order: PlacedOrder): void {
   try {
