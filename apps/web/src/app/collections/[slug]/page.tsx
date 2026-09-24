@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { FilterDrawer } from '@/components/collection/FilterDrawer';
 import { FilterPanel } from '@/components/collection/FilterPanel';
 import { SortSelect } from '@/components/collection/SortSelect';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -48,7 +49,10 @@ export default async function CollectionPage({ params, searchParams }: Collectio
             {visible.length} {visible.length === 1 ? 'product' : 'products'}
           </p>
         </div>
-        <SortSelect value={filters.sort} />
+        <div className="flex items-center gap-3">
+          <FilterDrawer options={options} filters={filters} resultCount={visible.length} />
+          <SortSelect value={filters.sort} />
+        </div>
       </div>
 
       <div className="mt-8 gap-10 lg:grid lg:grid-cols-[14rem_1fr]">
