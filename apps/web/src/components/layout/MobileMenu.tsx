@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { CloseIcon, MenuIcon } from '@/components/ui/icons';
-import type { NavItem } from '@/data/navigation';
+import { ChevronIcon, CloseIcon, MenuIcon } from '@/components/ui/icons';
+import type { NavItem, NavLink } from '@/data/navigation';
 
 export function MobileMenu({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
@@ -67,18 +67,66 @@ export function MobileMenu({ items }: { items: NavItem[] }) {
         >
           <ul className="divide-border divide-y px-(--gutter)">
             {items.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="block py-5 text-sm font-medium tracking-wide uppercase"
-                >
-                  {item.label}
-                </Link>
-              </li>
+              <MobileNavItem key={item.href} item={item} />
             ))}
           </ul>
         </nav>
       )}
+    </div>
+  );
+}
+
+const rowClass = 'py-5 text-sm font-medium tracking-wide uppercase';
+
+function MobileNavItem({ item }: { item: NavItem }) {
+  const [expanded, setExpanded] = useState(false);
+  const panelId = `mobile-${item.label.toLowerCase().replace(/\s+/g, '-')}`;
+
+  if (!item.menu) {
+    return (
+      <li>
+        <Link href={item.href} className={`${rowClass} block`}>
+          {item.label}
+        </Link>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      <button
+        type="button"
+        className={`${rowClass} flex w-full items-center justify-between`}
+        aria-expanded={expanded}
+        aria-controls={expanded ? panelId : undefined}
+        onClick={() => setExpanded(!expanded)}
+      >
+        {item.label}
+        <ChevronIcon className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+      {expanded && (
+        <div id={panelId} className="space-y-6 pb-6">
+          <MobileLinks title="Featured" links={item.menu.featured} />
+          <MobileLinks title={`Explore ${item.label}`} links={item.menu.explore} />
+        </div>
+      )}
+    </li>
+  );
+}
+
+function MobileLinks({ title, links }: { title: string; links: NavLink[] }) {
+  return (
+    <div>
+      <h2 className="text-muted mb-3 text-xs font-medium tracking-wide uppercase">{title}</h2>
+      <ul className="space-y-3">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link href={link.href} className="text-sm">
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
