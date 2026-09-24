@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ColourSwatches } from '@/components/product/ColourSwatches';
+import { ProductGallery } from '@/components/product/ProductGallery';
 import { Container } from '@/components/ui/Container';
 import { Stars } from '@/components/ui/Stars';
 import { formatPrice } from '@/lib/format';
@@ -32,16 +32,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
   return (
     <Container className="py-8 md:py-12">
       <div className="grid gap-8 lg:grid-cols-[1fr_28rem] lg:gap-16">
-        <div className="bg-surface relative aspect-4/5">
-          <Image
-            src={product.images[0]}
-            alt={`${product.name} in ${product.colour}`}
-            fill
-            priority
-            sizes="(min-width: 1024px) 50vw, 100vw"
-            className="object-cover"
-          />
-        </div>
+        <ProductGallery
+          key={product.id}
+          images={product.images}
+          alt={`${product.name} in ${product.colour}`}
+        />
 
         <div className="space-y-8">
           <div>
