@@ -12,7 +12,7 @@ from app.models import Product, ProductDetail, ProductImage, ProductSize, Review
 CATALOGUE_PATH = Path(__file__).resolve().parent.parent / "data" / "catalogue.json"
 
 
-def _build_product(data: dict) -> Product:
+def _build_product(data: dict, position: int) -> Product:
     return Product(
         id=data["id"],
         slug=data["slug"],
@@ -26,6 +26,7 @@ def _build_product(data: dict) -> Product:
         is_new=data["is_new"],
         is_best_seller=data["is_best_seller"],
         description=data["description"],
+        position=position,
         images=[ProductImage(url=url, position=i) for i, url in enumerate(data["images"])],
         sizes=[ProductSize(label=label, position=i) for i, label in enumerate(data["sizes"])],
         details=[ProductDetail(text=text, position=i) for i, text in enumerate(data["details"])],
@@ -36,12 +37,12 @@ def load_catalogue(session: Session, path: Path = CATALOGUE_PATH) -> tuple[int, 
     """Inserts or replaces the products and reviews in the file. Safe to run more than once."""
     catalogue = json.loads(path.read_text())
 
-    for data in catalogue["products"]:
+    for position, data in enumerate(catalogue["products"]):
         existing = session.get(Product, data["id"])
         if existing:
             session.delete(existing)
             session.flush()
-        session.add(_build_product(data))
+        session.add(_build_product(data, position))
 
     for data in catalogue["reviews"]:
         session.merge(

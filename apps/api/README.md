@@ -27,6 +27,22 @@ uvicorn app.main:app --reload    # http://localhost:8000/docs
 
 Check it works: <http://localhost:8000/api/v1/health> returns `{"status": "ok", "database": "ok"}`.
 
+## Endpoints
+
+All under `/api/v1`. JSON uses camelCase, matching the website's types. Interactive docs are at `/docs`.
+
+| Endpoint                       | What it returns                                                                                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`                  | API and database status                                                                                                                               |
+| `GET /products`                | Paginated products. Filters: `gender`, `category`, `size`, `colour` (repeatable), `min`, `max`. Sort: `featured`, `newest`, `price-asc`, `price-desc` |
+| `GET /products/{slug}`         | A product with its colourways and rating                                                                                                              |
+| `GET /products/{slug}/reviews` | Reviews for the product's style                                                                                                                       |
+| `GET /products/{slug}/related` | Other products in the same category (`limit` up to 12)                                                                                                |
+| `GET /collections/{slug}`      | A collection: title, filter options and its filtered, sorted products                                                                                 |
+| `GET /search?q=`               | Ranked search results                                                                                                                                 |
+
+Pagination uses `page` and `pageSize` (default 24, at most 100). Unknown slugs return 404, and invalid query values return 422 instead of being ignored.
+
 ## Tests and linting
 
 ```bash

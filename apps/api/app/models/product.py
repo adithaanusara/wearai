@@ -42,6 +42,8 @@ class Product(Base):
     is_new: Mapped[bool] = mapped_column(Boolean, default=False)
     is_best_seller: Mapped[bool] = mapped_column(Boolean, default=False)
     description: Mapped[str] = mapped_column(Text)
+    # Lower numbers come first in the default "featured" order.
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
 
     images: Mapped[list["ProductImage"]] = relationship(
         order_by="ProductImage.position", cascade="all, delete-orphan"
