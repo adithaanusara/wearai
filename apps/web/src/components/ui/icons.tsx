@@ -86,3 +86,15 @@ export const YouTubeIcon = (props: IconProps) => (
     <path d="M10.5 9.5v5l4.5-2.5z" />
   </Icon>
 );
+
+export const ChatIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 5h16v11H9l-5 4V5z" />
+  </Icon>
+);
+
+export const SendIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 12l16-8-6 16-3-6-7-2z" />
+  </Icon>
+);
