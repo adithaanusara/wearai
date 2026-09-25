@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from alembic import command
 from app.db import get_db
 from app.main import app
+from app.seed import load_catalogue
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+psycopg://wearai:wearai@localhost:5432/wearai_test"
@@ -48,3 +49,9 @@ def client(db: Session) -> Iterator[TestClient]:
     app.dependency_overrides[get_db] = lambda: db
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def catalogue(db: Session) -> None:
+    """The starter catalogue: 17 products and 7 reviews."""
+    load_catalogue(db)

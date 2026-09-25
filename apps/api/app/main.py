@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health
+from app.api import collections, health, products, search
 from app.config import settings
 
 API_PREFIX = "/api/v1"
@@ -18,6 +18,9 @@ def create_app() -> FastAPI:
         allow_headers=["Content-Type", "Authorization"],
     )
     app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(products.router, prefix=API_PREFIX)
+    app.include_router(collections.router, prefix=API_PREFIX)
+    app.include_router(search.router, prefix=API_PREFIX)
     return app
 
 
