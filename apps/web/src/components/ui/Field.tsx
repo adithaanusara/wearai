@@ -78,3 +78,25 @@ export function SelectField({ name, label, error, children, ...props }: SelectFi
     </FieldShell>
   );
 }
+
+interface TextareaFieldProps extends ComponentPropsWithoutRef<'textarea'> {
+  name: string;
+  label: string;
+  error?: string;
+}
+
+export function TextareaField({ name, label, error, ...props }: TextareaFieldProps) {
+  const id = `field-${name}`;
+  return (
+    <FieldShell id={id} label={label} error={error}>
+      <textarea
+        id={id}
+        name={name}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={controlClass}
+        {...props}
+      />
+    </FieldShell>
+  );
+}
