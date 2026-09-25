@@ -2,13 +2,11 @@ import Link from 'next/link';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Carousel } from '@/components/ui/Carousel';
 import { Container } from '@/components/ui/Container';
-import { products } from '@/data/products';
+import type { Product } from '@/types/product';
 
 const slideImageSizes = '(min-width: 1024px) 24vw, (min-width: 640px) 40vw, 70vw';
 
-export function LatestStyles() {
-  const latest = products.filter((product) => product.isNew);
-
+export function LatestStyles({ products }: { products: Product[] }) {
   return (
     <section aria-labelledby="latest-styles-title" className="py-12 md:py-16">
       <Container>
@@ -28,7 +26,7 @@ export function LatestStyles() {
         </div>
 
         <Carousel label="Latest styles">
-          {latest.map((product) => (
+          {products.map((product) => (
             <li key={product.id} className="w-[70%] shrink-0 snap-start sm:w-[40%] lg:w-[24%]">
               <ProductCard product={product} imageSizes={slideImageSizes} />
             </li>

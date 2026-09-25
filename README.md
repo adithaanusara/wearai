@@ -18,13 +18,28 @@ The website still runs on typed mock data while the API is being built.
 
 ## Getting started
 
+The site reads its catalogue from the API, so run the database and API too:
+
 ```bash
-pnpm install
 cp .env.example .env
-pnpm dev
+
+# 1. database (Docker)
+docker compose up -d db
+
+# 2. API (see apps/api/README.md for details)
+cd apps/api
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+alembic upgrade head && python -m app.seed
+uvicorn app.main:app --reload        # http://localhost:8000
+cd ../..
+
+# 3. website
+pnpm install
+pnpm dev                             # http://localhost:3000
 ```
 
-The site runs at http://localhost:3000.
+The website proxies `/api/*` to the API (`API_URL`, default `http://localhost:8000`), so the browser only talks to one origin. Pages that show products render on request; building the site does not need the API to be running.
 
 ## Scripts
 

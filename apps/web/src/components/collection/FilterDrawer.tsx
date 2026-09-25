@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { FilterPanel } from '@/components/collection/FilterPanel';
 import { Drawer } from '@/components/ui/Drawer';
-import type { CollectionFilters, FilterOptions } from '@/lib/collection';
+import type { CollectionFilters } from '@/lib/collection';
+import type { FilterOptions } from '@/types/api';
 
 interface FilterDrawerProps {
   options: FilterOptions;

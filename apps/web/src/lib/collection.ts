@@ -1,5 +1,3 @@
-import type { Product } from '@/types/product';
-
 export const sortOptions = [
   { value: 'featured', label: 'Featured' },
   { value: 'newest', label: 'Newest' },
@@ -19,80 +17,46 @@ export interface CollectionFilters {
 
 export type SearchParams = Record<string, string | string[] | undefined>;
 
-const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'One Size'];
-
+// Empty values such as `?size=` are dropped: an empty filter would otherwise match nothing.
 function toArray(value: string | string[] | undefined): string[] {
   if (value === undefined) return [];
-  return Array.isArray(value) ? value : [value];
+  return (Array.isArray(value) ? value : [value]).filter((item) => item !== '');
 }
 
 function toPrice(value: string | string[] | undefined): number | undefined {
   const raw = toArray(value)[0];
   if (!raw) return undefined;
   const amount = Number(raw);
-  return Number.isFinite(amount) && amount >= 0 ? amount : undefined;
+  // The API takes whole rupees, so anything else is ignored.
+  return Number.isInteger(amount) && amount >= 0 ? amount : undefined;
 }
 
-/** Turns URL query params into typed filters, ignoring anything invalid. */
+/**
+ * Turns URL query params into typed filters. The API is strict about bad values, but a
+ * hand-edited URL should still give a page, so anything invalid is ignored here first.
+ */
 export function parseFilters(params: SearchParams): CollectionFilters {
   const sort = toArray(params.sort)[0];
+  let minPrice = toPrice(params.min);
+  let maxPrice = toPrice(params.max);
+  // A reversed range is taken to mean the other way round.
+  if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+    [minPrice, maxPrice] = [maxPrice, minPrice];
+  }
+
   return {
     sizes: toArray(params.size),
     colours: toArray(params.colour),
-    minPrice: toPrice(params.min),
-    maxPrice: toPrice(params.max),
+    minPrice,
+    maxPrice,
     sort: sortOptions.some((option) => option.value === sort) ? (sort as SortKey) : 'featured',
   };
 }
 
-export function filterProducts(products: Product[], filters: CollectionFilters): Product[] {
-  return products.filter((product) => {
-    if (filters.sizes.length && !product.sizes.some((size) => filters.sizes.includes(size))) {
-      return false;
-    }
-    if (filters.colours.length && !filters.colours.includes(product.colour)) return false;
-    if (filters.minPrice !== undefined && product.price < filters.minPrice) return false;
-    if (filters.maxPrice !== undefined && product.price > filters.maxPrice) return false;
-    return true;
-  });
-}
-
-export function sortProducts(products: Product[], sort: SortKey): Product[] {
-  const sorted = [...products];
-  switch (sort) {
-    case 'newest':
-      // Array.sort is stable, so products keep their featured order within each group.
-      return sorted.sort((a, b) => Number(b.isNew) - Number(a.isNew));
-    case 'price-asc':
-      return sorted.sort((a, b) => a.price - b.price);
-    case 'price-desc':
-      return sorted.sort((a, b) => b.price - a.price);
-    default:
-      return sorted;
-  }
-}
-
-export interface FilterOptions {
-  sizes: string[];
-  colours: string[];
-  minPrice: number;
-  maxPrice: number;
-}
-
-/** The choices to offer, based on the products of the current collection. */
-export function getFilterOptions(products: Product[]): FilterOptions {
-  const sizes = [...new Set(products.flatMap((product) => product.sizes))].sort(
-    (a, b) => sizeOrder.indexOf(a) - sizeOrder.indexOf(b),
-  );
-  const colours = [...new Set(products.map((product) => product.colour))].sort();
-  const prices = products.map((product) => product.price);
-
-  return {
-    sizes,
-    colours,
-    minPrice: prices.length ? Math.min(...prices) : 0,
-    maxPrice: prices.length ? Math.max(...prices) : 0,
-  };
+/** The page number from the URL: a whole number from 1, otherwise 1. */
+export function parsePage(params: SearchParams): number {
+  const page = Number(toArray(params.page)[0]);
+  return Number.isInteger(page) && page >= 1 ? page : 1;
 }
 
 export function hasActiveFilters(filters: CollectionFilters): boolean {
@@ -102,4 +66,17 @@ export function hasActiveFilters(filters: CollectionFilters): boolean {
     filters.minPrice !== undefined ||
     filters.maxPrice !== undefined
   );
+}
+
+/** The parameters are named the same in the page URL and in the API, so this serves both. */
+export function toQuery(filters: CollectionFilters, page = 1, pageSize?: number) {
+  return {
+    size: filters.sizes,
+    colour: filters.colours,
+    min: filters.minPrice,
+    max: filters.maxPrice,
+    sort: filters.sort === 'featured' ? undefined : filters.sort,
+    page: page > 1 ? page : undefined,
+    pageSize,
+  };
 }

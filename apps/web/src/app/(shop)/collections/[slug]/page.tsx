@@ -1,19 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { FilterDrawer } from '@/components/collection/FilterDrawer';
 import { FilterPanel } from '@/components/collection/FilterPanel';
+import { Pagination } from '@/components/collection/Pagination';
 import { SortSelect } from '@/components/collection/SortSelect';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Container } from '@/components/ui/Container';
-import { getCollection } from '@/data/collections';
-import { products } from '@/data/products';
+import { ApiError, buildQuery, getCollection, orNotFound } from '@/lib/api';
 import {
-  filterProducts,
-  getFilterOptions,
   hasActiveFilters,
   parseFilters,
-  sortProducts,
+  parsePage,
+  toQuery,
   type SearchParams,
 } from '@/lib/collection';
 
@@ -24,19 +22,31 @@ interface CollectionPageProps {
 
 export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const collection = getCollection(slug);
-  return { title: collection ? collection.title : 'Collection not found' };
+  try {
+    const collection = await getCollection(slug, { pageSize: 1 });
+    return { title: collection.title };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return { title: 'Collection not found' };
+    }
+    throw error;
+  }
 }
+
+// Shows live store data, so it renders on each request and the build does not need the API.
+export const dynamic = 'force-dynamic';
 
 export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
   const { slug } = await params;
-  const collection = getCollection(slug);
-  if (!collection) notFound();
+  const query = await searchParams;
+  const filters = parseFilters(query);
+  const page = parsePage(query);
 
-  const filters = parseFilters(await searchParams);
-  const inCollection = products.filter(collection.includes);
-  const options = getFilterOptions(inCollection);
-  const visible = sortProducts(filterProducts(inCollection, filters), filters.sort);
+  const collection = await orNotFound(getCollection(slug, toQuery(filters, page)));
+  const { items, total, pageSize, filterOptions } = collection;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const hrefFor = (target: number) =>
+    `/collections/${collection.slug}${buildQuery(toQuery(filters, target))}`;
 
   return (
     <Container className="py-10 md:py-14">
@@ -46,23 +56,23 @@ export default async function CollectionPage({ params, searchParams }: Collectio
             {collection.title}
           </h1>
           <p className="text-muted mt-2 text-sm" role="status">
-            {visible.length} {visible.length === 1 ? 'product' : 'products'}
+            {total} {total === 1 ? 'product' : 'products'}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <FilterDrawer options={options} filters={filters} resultCount={visible.length} />
+          <FilterDrawer options={filterOptions} filters={filters} resultCount={total} />
           <SortSelect value={filters.sort} />
         </div>
       </div>
 
       <div className="mt-8 gap-10 lg:grid lg:grid-cols-[14rem_1fr]">
         <aside aria-label="Filters" className="hidden lg:block">
-          <FilterPanel options={options} filters={filters} />
+          <FilterPanel options={filterOptions} filters={filters} />
         </aside>
         <div>
-          {visible.length > 0 ? (
+          {items.length > 0 ? (
             <ul className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-3">
-              {visible.map((product) => (
+              {items.map((product) => (
                 <li key={product.id}>
                   <ProductCard product={product} imageSizes="(min-width: 1024px) 25vw, 50vw" />
                 </li>
@@ -71,16 +81,17 @@ export default async function CollectionPage({ params, searchParams }: Collectio
           ) : (
             <div className="py-16 text-center">
               <p className="text-lg font-medium">No products match your selection.</p>
-              {hasActiveFilters(filters) && (
+              {(hasActiveFilters(filters) || page > 1) && (
                 <Link
                   href={`/collections/${collection.slug}`}
                   className="mt-4 inline-block text-sm underline"
                 >
-                  Clear filters
+                  {hasActiveFilters(filters) ? 'Clear filters' : 'Back to the first page'}
                 </Link>
               )}
             </div>
           )}
+          <Pagination page={page} pageCount={pageCount} hrefFor={hrefFor} />
         </div>
       </div>
     </Container>

@@ -1,11 +1,9 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Container } from '@/components/ui/Container';
-import { products } from '@/data/products';
+import type { Product } from '@/types/product';
 
-export function AccessoriesGrid() {
-  const accessories = products.filter((product) => product.gender === 'unisex');
-
+export function AccessoriesGrid({ products }: { products: Product[] }) {
   return (
     <section aria-labelledby="accessories-title" className="py-12 md:py-16">
       <Container>
@@ -24,7 +22,7 @@ export function AccessoriesGrid() {
           </Link>
         </div>
         <ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {accessories.map((product) => (
+          {products.map((product) => (
             <li key={product.id}>
               <ProductCard product={product} />
             </li>

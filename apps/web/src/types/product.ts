@@ -23,9 +23,9 @@ export interface Product {
   /** Price in whole LKR. */
   price: number;
   /** Original price in whole LKR, set when the product is on sale. */
-  compareAtPrice?: number;
-  /** First image is the default; the second is shown on hover. */
-  images: [string, string];
+  compareAtPrice?: number | null;
+  /** The first image is the default; the second, when there is one, is shown on hover. */
+  images: string[];
   sizes: string[];
   isNew: boolean;
   isBestSeller?: boolean;

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQueryUpdater } from '@/components/collection/useQueryUpdater';
-import { hasActiveFilters, type CollectionFilters, type FilterOptions } from '@/lib/collection';
+import { hasActiveFilters, type CollectionFilters } from '@/lib/collection';
+import type { FilterOptions } from '@/types/api';
 
 interface FilterPanelProps {
   options: FilterOptions;
