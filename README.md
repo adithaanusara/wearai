@@ -6,10 +6,10 @@ A clothing store website with an AI shopping assistant. The website comes first;
 
 ```
 apps/web   Next.js (App Router), TypeScript, Tailwind CSS
-apps/api   FastAPI + PostgreSQL (added in a later phase)
+apps/api   FastAPI + PostgreSQL (see apps/api/README.md)
 ```
 
-The website runs on typed mock data until the API exists.
+The website still runs on typed mock data while the API is being built.
 
 ## Requirements
 

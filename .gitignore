@@ -25,3 +25,6 @@ __pycache__/
 # editor and local notes
 .vscode/
 CLAUDE.md
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
