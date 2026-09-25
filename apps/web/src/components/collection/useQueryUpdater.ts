@@ -11,6 +11,8 @@ export function useQueryUpdater() {
   function update(change: (params: URLSearchParams) => void) {
     const params = new URLSearchParams(searchParams.toString());
     change(params);
+    // A different filter or sort means a different result list, so start again from page 1.
+    params.delete('page');
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }

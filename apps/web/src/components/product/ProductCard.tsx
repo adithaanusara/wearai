@@ -25,13 +25,15 @@ export function ProductCard({
           sizes={imageSizes}
           className="object-cover"
         />
-        <Image
-          src={secondary}
-          alt=""
-          fill
-          sizes={imageSizes}
-          className="object-cover opacity-0 transition-opacity duration-300 group-focus-within:opacity-100 group-hover:opacity-100"
-        />
+        {secondary && (
+          <Image
+            src={secondary}
+            alt=""
+            fill
+            sizes={imageSizes}
+            className="object-cover opacity-0 transition-opacity duration-300 group-focus-within:opacity-100 group-hover:opacity-100"
+          />
+        )}
         {product.isNew && (
           <span className="bg-bg text-text absolute top-3 left-3 px-2 py-1 text-[10px] font-medium tracking-wide uppercase">
             New
@@ -48,7 +50,7 @@ export function ProductCard({
         </h3>
         <p className="text-muted text-sm">{product.colour}</p>
         <p className="text-sm">
-          {product.compareAtPrice !== undefined && (
+          {product.compareAtPrice != null && (
             <s className="text-muted mr-2">{formatPrice(product.compareAtPrice)}</s>
           )}
           {formatPrice(product.price)}

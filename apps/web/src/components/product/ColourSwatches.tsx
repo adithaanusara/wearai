@@ -4,7 +4,7 @@ import type { Product } from '@/types/product';
 
 interface ColourSwatchesProps {
   current: Product;
-  colourways: Product[];
+  colourways: Pick<Product, 'id' | 'slug' | 'colour'>[];
 }
 
 export function ColourSwatches({ current, colourways }: ColourSwatchesProps) {

@@ -28,7 +28,7 @@ function pickProducts(text: string): Product[] {
   if (category) matches = matches.filter((product) => product.category === category);
   else if (/\b(?:new|latest)\b/.test(text)) matches = matches.filter((product) => product.isNew);
   else if (/\b(?:sale|discount|offers?|cheap)\b/.test(text)) {
-    matches = matches.filter((product) => product.compareAtPrice !== undefined);
+    matches = matches.filter((product) => product.compareAtPrice != null);
   } else if (/\bbest[- ]?sellers?\b|\bpopular\b/.test(text)) {
     matches = matches.filter((product) => product.isBestSeller);
   } else return [];

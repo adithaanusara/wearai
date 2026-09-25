@@ -1,6 +1,6 @@
 import { Stars } from '@/components/ui/Stars';
-import type { Review } from '@/data/reviews';
 import { formatDate } from '@/lib/format';
+import type { Review } from '@/types/api';
 
 interface ProductReviewsProps {
   reviews: Review[];

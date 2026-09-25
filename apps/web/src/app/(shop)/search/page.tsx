@@ -1,15 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ProductCard } from '@/components/product/ProductCard';
+import { Pagination } from '@/components/collection/Pagination';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Container } from '@/components/ui/Container';
-import { products } from '@/data/products';
-import { MAX_QUERY_LENGTH, searchProducts } from '@/lib/search';
+import { MAX_QUERY_LENGTH, buildQuery, searchProducts } from '@/lib/api';
+import { parsePage } from '@/lib/collection';
 
 export const metadata: Metadata = { title: 'Search' };
 
 interface SearchPageProps {
-  searchParams: Promise<{ q?: string | string[] }>;
+  searchParams: Promise<{ q?: string | string[]; page?: string | string[] }>;
 }
 
 const suggestions = [
@@ -19,10 +20,21 @@ const suggestions = [
   { label: 'Accessories', href: '/collections/accessories' },
 ];
 
+// Shows live store data, so it renders on each request and the build does not need the API.
+export const dynamic = 'force-dynamic';
+
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { q } = await searchParams;
+  const params = await searchParams;
+  const { q } = params;
   const query = (Array.isArray(q) ? q[0] : q)?.trim().slice(0, MAX_QUERY_LENGTH) ?? '';
-  const results = searchProducts(query, products);
+  const page = parsePage(params);
+
+  const found = query ? await searchProducts(query, page) : null;
+  const results = found?.items ?? [];
+  const total = found?.total ?? 0;
+  const pageCount = found ? Math.max(1, Math.ceil(found.total / found.pageSize)) : 1;
+  const hrefFor = (target: number) =>
+    `/search${buildQuery({ q: query, page: target > 1 ? target : undefined })}`;
 
   return (
     <Container className="py-10 md:py-14">
@@ -51,7 +63,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       {query && (
         <p className="text-muted mt-6 text-sm" role="status">
-          {results.length} {results.length === 1 ? 'result' : 'results'} for “{query}”
+          {total} {total === 1 ? 'result' : 'results'} for “{query}”
         </p>
       )}
 
@@ -84,6 +96,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           )}
         </div>
       )}
+      <Pagination page={page} pageCount={pageCount} hrefFor={hrefFor} />
     </Container>
   );
 }
