@@ -1,67 +1,61 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
 import { useCart } from '@/components/cart/CartProvider';
 import { OrderSummary } from '@/components/cart/OrderSummary';
 import { ChoiceGroup } from '@/components/checkout/ChoiceGroup';
-import { Field, SelectField } from '@/components/ui/Field';
 import { ButtonLink } from '@/components/ui/ButtonLink';
-import { provinces } from '@/data/locations';
-import { deliveryMethods, paymentMethods } from '@/data/shipping';
-import { cartSubtotal, resolveCartLines } from '@/lib/cart';
-import { validateCheckout, type CheckoutErrors, type CheckoutValues } from '@/lib/checkout';
+import { Field, SelectField } from '@/components/ui/Field';
+import { ApiError, placeOrder, quoteCart } from '@/lib/api';
+import {
+  firstInvalidField,
+  initialValues,
+  mapProblems,
+  type CheckoutErrors,
+  type CheckoutValues,
+} from '@/lib/checkout-form';
 import { formatPrice } from '@/lib/format';
-import { createOrderReference, saveOrder } from '@/lib/order-store';
-import { calculateShipping } from '@/lib/shipping';
+import { clearCheckoutKey, getCheckoutKey } from '@/lib/idempotency';
+import { saveOrder } from '@/lib/order-store';
 import { useHydrated } from '@/lib/use-hydrated';
-
-const initialValues: CheckoutValues = {
-  email: '',
-  phone: '',
-  fullName: '',
-  address1: '',
-  address2: '',
-  city: '',
-  province: '',
-  district: '',
-  postalCode: '',
-  deliveryMethod: 'standard',
-  paymentMethod: 'cod',
-};
-
-// Order of the fields on the page, used to focus the first invalid one.
-const fieldOrder: (keyof CheckoutValues)[] = [
-  'email',
-  'phone',
-  'fullName',
-  'address1',
-  'address2',
-  'city',
-  'province',
-  'district',
-  'postalCode',
-  'deliveryMethod',
-  'paymentMethod',
-];
+import type { CheckoutOptions } from '@/types/api';
 
 const sectionTitle = 'mb-4 text-sm font-medium tracking-wide uppercase';
 
-export function CheckoutForm() {
+const cartProblemMessage = 'Some items in your cart can no longer be ordered.';
+const conflictMessage =
+  'An earlier attempt to place this order used different details. Please check them and place the order again.';
+const unreachableMessage =
+  'We could not reach the store. Your cart is safe. Please try again in a moment.';
+
+export function CheckoutForm({ options }: { options: CheckoutOptions }) {
   const router = useRouter();
   const { items, clearCart } = useCart();
   const hydrated = useHydrated();
   const formRef = useRef<HTMLFormElement>(null);
+  // A ref, not state: a fast double click fires twice before a state update can disable the button.
+  const submitting = useRef(false);
+
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<CheckoutErrors>({});
-  const [placing, setPlacing] = useState(false);
+  const [banner, setBanner] = useState<{ text: string; cartLink?: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [placed, setPlaced] = useState(false);
 
-  const lines = resolveCartLines(items);
-  const subtotal = cartSubtotal(lines);
-  const shipping = calculateShipping(subtotal, values.deliveryMethod);
+  // The server prices the cart. The numbers on this page are its answer, never our own arithmetic.
+  const quote = useQuery({
+    queryKey: ['quote', items, values.deliveryMethod],
+    queryFn: () => quoteCart(items, values.deliveryMethod),
+    enabled: hydrated && items.length > 0 && !placed,
+    retry: (failures, error) => !(error instanceof ApiError && error.status < 500) && failures < 1,
+  });
+  const cartRejected = quote.error instanceof ApiError && quote.error.status === 422;
+
   const districts =
-    provinces.find((province) => province.name === values.province)?.districts ?? [];
+    options.provinces.find((province) => province.name === values.province)?.districts ?? [];
 
   function update(name: keyof CheckoutValues, value: string) {
     setValues((current) => ({
@@ -73,43 +67,55 @@ export function CheckoutForm() {
     setErrors((current) => ({ ...current, [name]: undefined }));
   }
 
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    const found = validateCheckout(values);
-    setErrors(found);
-
-    const firstInvalid = fieldOrder.find((name) => found[name]);
-    if (firstInvalid) {
-      formRef.current?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
+  function showProblems(error: unknown) {
+    if (error instanceof ApiError && error.status === 422) {
+      const { fields, cartProblem, other } = mapProblems(error.problems);
+      setErrors(fields);
+      const first = firstInvalidField(fields);
+      if (first) formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+      if (cartProblem) setBanner({ text: cartProblemMessage, cartLink: true });
+      else if (other) setBanner({ text: other });
       return;
     }
-
-    // Orders are not sent anywhere yet; the API replaces this in a later item.
-    const reference = createOrderReference();
-    saveOrder({
-      reference,
-      email: values.email.trim(),
-      deliveryMethod: values.deliveryMethod,
-      paymentMethod: values.paymentMethod,
-      lines: lines.map(({ item, product, total }) => ({
-        name: product.name,
-        colour: product.colour,
-        size: item.size,
-        quantity: item.quantity,
-        total,
-      })),
-      subtotal,
-      shipping,
-      total: subtotal + shipping,
+    if (error instanceof ApiError && error.status === 409) {
+      // The key was used for different details, so the next attempt needs a fresh one.
+      clearCheckoutKey();
+      setBanner({ text: conflictMessage });
+      return;
+    }
+    // Anything else (network, server error): the same key is kept, so a retry cannot double-order.
+    setBanner({
+      text: error instanceof ApiError && error.status < 500 ? error.message : unreachableMessage,
     });
-    setPlacing(true);
-    clearCart();
-    router.push(`/checkout/success?order=${reference}`);
   }
 
-  if (!hydrated || placing) return <div className="min-h-64" aria-hidden="true" />;
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
+    setBanner(null);
+    setErrors({});
 
-  if (lines.length === 0) {
+    try {
+      const order = await placeOrder({ ...values, items }, getCheckoutKey());
+      // The cart is cleared only now that the server has confirmed the order.
+      saveOrder(order);
+      clearCheckoutKey();
+      setPlaced(true);
+      clearCart();
+      router.push(`/checkout/success?order=${encodeURIComponent(order.reference)}`);
+    } catch (error) {
+      showProblems(error);
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
+  }
+
+  if (!hydrated || placed) return <div className="min-h-64" aria-hidden="true" />;
+
+  if (items.length === 0) {
     return (
       <div className="mt-12 flex flex-col items-center gap-6 text-center">
         <p>Your cart is empty.</p>
@@ -121,6 +127,17 @@ export function CheckoutForm() {
   return (
     <div className="mt-8 gap-12 lg:grid lg:grid-cols-[1fr_24rem]">
       <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-10">
+        {(banner || cartRejected) && (
+          <div role="alert" className="border-error text-error rounded-sm border p-4 text-sm">
+            {banner?.text ?? cartProblemMessage}{' '}
+            {(banner?.cartLink || cartRejected) && (
+              <Link href="/cart" className="underline">
+                Review your cart
+              </Link>
+            )}
+          </div>
+        )}
+
         <section aria-labelledby="contact-title">
           <h2 id="contact-title" className={sectionTitle}>
             Contact
@@ -179,6 +196,7 @@ export function CheckoutForm() {
                 label="Apartment, suite, etc. (optional)"
                 autoComplete="address-line2"
                 value={values.address2}
+                error={errors.address2}
                 onChange={(event) => update('address2', event.target.value)}
               />
             </div>
@@ -207,7 +225,7 @@ export function CheckoutForm() {
               onChange={(event) => update('province', event.target.value)}
             >
               <option value="">Select a province</option>
-              {provinces.map((province) => (
+              {options.provinces.map((province) => (
                 <option key={province.name} value={province.name}>
                   {province.name}
                 </option>
@@ -241,15 +259,15 @@ export function CheckoutForm() {
             value={values.deliveryMethod}
             error={errors.deliveryMethod}
             onChange={(value) => update('deliveryMethod', value)}
-            choices={deliveryMethods.map((method) => {
-              const fee = calculateShipping(subtotal, method.id);
-              return {
-                id: method.id,
-                label: method.label,
-                description: method.estimate,
-                detail: fee === 0 ? 'Free' : formatPrice(fee),
-              };
-            })}
+            choices={options.deliveryMethods.map((method) => ({
+              id: method.id,
+              label: method.label,
+              description:
+                method.freeOver === null
+                  ? method.estimate
+                  : `${method.estimate} · Free over ${formatPrice(method.freeOver)}`,
+              detail: method.fee === 0 ? 'Free' : formatPrice(method.fee),
+            }))}
           />
         </section>
 
@@ -263,7 +281,7 @@ export function CheckoutForm() {
             value={values.paymentMethod}
             error={errors.paymentMethod}
             onChange={(value) => update('paymentMethod', value)}
-            choices={paymentMethods.map((method) => ({
+            choices={options.paymentMethods.map((method) => ({
               id: method.id,
               label: method.label,
               description: method.note,
@@ -274,9 +292,10 @@ export function CheckoutForm() {
         <div>
           <button
             type="submit"
-            className="bg-text text-bg hover:bg-dark-2 w-full rounded-sm px-8 py-4 text-xs font-medium tracking-wide uppercase transition-colors sm:w-auto"
+            disabled={busy || !quote.data}
+            className="bg-text text-bg hover:bg-dark-2 w-full rounded-sm px-8 py-4 text-xs font-medium tracking-wide uppercase transition-colors disabled:opacity-40 sm:w-auto"
           >
-            Place order
+            {busy ? 'Placing order…' : 'Place order'}
           </button>
           <p className="text-muted mt-3 text-xs">
             By placing your order you agree to our{' '}
@@ -290,25 +309,41 @@ export function CheckoutForm() {
 
       <aside
         aria-label="Order summary"
+        aria-busy={quote.isPending}
         className="bg-surface mt-10 h-fit space-y-6 p-6 lg:sticky lg:top-24 lg:mt-0"
       >
-        <ul className="divide-border divide-y text-sm">
-          {lines.map(({ item, product, total }) => (
-            <li
-              key={`${item.productId}-${item.size}`}
-              className="flex justify-between gap-4 py-3 first:pt-0"
-            >
-              <span>
-                {product.name}
-                <span className="text-muted block text-xs">
-                  {product.colour} · {item.size} · Qty {item.quantity}
-                </span>
-              </span>
-              <span className="shrink-0">{formatPrice(total)}</span>
-            </li>
-          ))}
-        </ul>
-        <OrderSummary subtotal={subtotal} shipping={shipping} />
+        {quote.data ? (
+          <>
+            <ul className="divide-border divide-y text-sm">
+              {quote.data.lines.map((line) => (
+                <li
+                  key={`${line.productId}-${line.size}`}
+                  className="flex justify-between gap-4 py-3 first:pt-0"
+                >
+                  <span>
+                    {line.name}
+                    <span className="text-muted block text-xs">
+                      {line.colour} · {line.size} · Qty {line.quantity}
+                    </span>
+                  </span>
+                  <span className="shrink-0">{formatPrice(line.lineTotal)}</span>
+                </li>
+              ))}
+            </ul>
+            <OrderSummary subtotal={quote.data.subtotal} shipping={quote.data.shipping} />
+          </>
+        ) : quote.isError && !cartRejected ? (
+          <div className="space-y-3 text-sm" role="alert">
+            <p>We could not work out your total.</p>
+            <button type="button" className="underline" onClick={() => void quote.refetch()}>
+              Try again
+            </button>
+          </div>
+        ) : cartRejected ? (
+          <p className="text-sm">Your total appears once the cart can be ordered.</p>
+        ) : (
+          <p className="text-muted text-sm">Calculating your total…</p>
+        )}
       </aside>
     </div>
   );

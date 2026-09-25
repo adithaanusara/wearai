@@ -34,7 +34,7 @@ All under `/api/v1`. JSON uses camelCase, matching the website's types. Interact
 | Endpoint                       | What it returns                                                                                                                                       |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /health`                  | API and database status                                                                                                                               |
-| `GET /products`                | Paginated products. Filters: `gender`, `category`, `size`, `colour` (repeatable), `min`, `max`. Sort: `featured`, `newest`, `price-asc`, `price-desc` |
+| `GET /products`                | Paginated products. Filters: `gender`, `category`, `size`, `colour` (repeatable), `min`, `max`. Sort: `featured`, `newest`, `price-asc`, `price-desc`. `id` (repeatable, up to 50) looks up specific products, as the cart does |
 | `GET /products/{slug}`         | A product with its colourways and rating                                                                                                              |
 | `GET /products/{slug}/reviews` | Reviews for the product's style                                                                                                                       |
 | `GET /products/{slug}/related` | Other products in the same category (`limit` up to 12)                                                                                                |

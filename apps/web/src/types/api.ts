@@ -38,3 +38,67 @@ export interface Review {
   /** ISO date, e.g. 2026-09-12. */
   date: string;
 }
+
+export interface CheckoutOptions {
+  deliveryMethods: {
+    id: string;
+    label: string;
+    estimate: string;
+    fee: number;
+    /** Orders at or above this subtotal ship free. */
+    freeOver: number | null;
+  }[];
+  paymentMethods: { id: string; label: string; note: string }[];
+  provinces: { name: string; districts: string[] }[];
+}
+
+export interface OrderLine {
+  productId: string;
+  name: string;
+  colour: string;
+  size: string;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+}
+
+/** The server's price for a cart. Amounts are whole LKR. */
+export interface Quote {
+  lines: OrderLine[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+}
+
+export interface Order extends Quote {
+  reference: string;
+  status: string;
+  email: string;
+  phone: string;
+  fullName: string;
+  address1: string;
+  address2: string;
+  city: string;
+  province: string;
+  district: string;
+  postalCode: string;
+  deliveryMethod: string;
+  paymentMethod: string;
+  createdAt: string;
+}
+
+/** What the checkout form sends. Prices are never included: the server works them out. */
+export interface OrderRequest {
+  items: { productId: string; size: string; quantity: number }[];
+  deliveryMethod: string;
+  paymentMethod: string;
+  email: string;
+  phone: string;
+  fullName: string;
+  address1: string;
+  address2: string;
+  city: string;
+  province: string;
+  district: string;
+  postalCode: string;
+}

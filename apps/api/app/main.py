@@ -9,14 +9,20 @@ from app.config import settings
 API_PREFIX = "/api/v1"
 
 
+def _friendly_message(item: dict) -> str:
+    """Turns the library's technical wording into something a shopper can act on."""
+    message = item["msg"].removeprefix("Value error, ")
+    if item["type"] == "missing":
+        return "This field is required."
+    if message.startswith("value is not a valid email address"):
+        return "Enter a valid email address."
+    return message
+
+
 def _validation_error(_: Request, error: RequestValidationError) -> JSONResponse:
     """A 422 that says what is wrong but never echoes the submitted values, such as passwords."""
     problems = [
-        {
-            "loc": item["loc"],
-            "msg": item["msg"].removeprefix("Value error, "),
-            "type": item["type"],
-        }
+        {"loc": item["loc"], "msg": _friendly_message(item), "type": item["type"]}
         for item in error.errors()
     ]
     return JSONResponse(status_code=422, content={"detail": problems})

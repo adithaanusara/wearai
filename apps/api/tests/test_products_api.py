@@ -81,6 +81,29 @@ def test_colour_and_price_filters_combine(client: TestClient) -> None:
     assert ids(combined) == ["w-tee-01", "w-short-01", "m-tee-02"]
 
 
+def test_products_can_be_looked_up_by_id_for_the_cart(client: TestClient) -> None:
+    response = client.get("/api/v1/products?id=m-jog-01&id=w-tee-01&id=nope")
+
+    # Featured order, and ids that do not exist are simply absent.
+    assert ids(response) == ["w-tee-01", "m-jog-01"]
+    assert response.json()["total"] == 2
+
+
+def test_id_lookup_combines_with_other_filters_and_can_be_empty(client: TestClient) -> None:
+    assert ids(client.get("/api/v1/products?id=w-tee-01&id=m-jog-01&gender=men")) == ["m-jog-01"]
+    assert ids(client.get("/api/v1/products?id=nope")) == []
+    assert client.get("/api/v1/products?id=").json()["total"] == 0
+
+
+def test_id_lookup_is_limited_to_a_carts_worth_of_lines(client: TestClient) -> None:
+    fifty = "&".join(f"id=p{i}" for i in range(50))
+    fifty_one = fifty + "&id=p50"
+
+    assert client.get(f"/api/v1/products?{fifty}").status_code == 200
+    assert client.get(f"/api/v1/products?{fifty_one}").status_code == 422
+    assert client.get(f"/api/v1/products?id={'x' * 33}").status_code == 422
+
+
 def test_sorting(client: TestClient) -> None:
     cheapest = client.get("/api/v1/products?sort=price-asc").json()["items"]
     dearest = client.get("/api/v1/products?sort=price-desc").json()["items"]

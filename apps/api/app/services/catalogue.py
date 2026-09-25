@@ -29,6 +29,7 @@ class Filters:
     max_price: int | None = None
     gender: str | None = None
     category: str | None = None
+    ids: list[str] = field(default_factory=list)
     sort: SortKey = SortKey.FEATURED
 
 
@@ -55,6 +56,8 @@ def _conditions(filters: Filters) -> list[ColumnElement[bool]]:
         conditions.append(Product.gender == filters.gender)
     if filters.category:
         conditions.append(Product.category == filters.category)
+    if filters.ids:
+        conditions.append(Product.id.in_(filters.ids))
     return conditions
 
 

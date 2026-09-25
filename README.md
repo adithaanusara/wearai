@@ -39,6 +39,8 @@ pnpm install
 pnpm dev                             # http://localhost:3000
 ```
 
+If you serve the website from a port other than 3000, add its origin to `CORS_ORIGINS` in `.env` (for example `CORS_ORIGINS=["http://localhost:3000","http://localhost:3001"]`). The API refuses browser requests from origins it does not trust; that is its CSRF protection.
+
 The website proxies `/api/*` to the API (`API_URL`, default `http://localhost:8000`), so the browser only talks to one origin. Pages that show products render on request; building the site does not need the API to be running.
 
 ## Scripts
