@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSession } from '@/components/account/SessionProvider';
 import { mockOrders } from '@/data/orders';
 import { formatDate, formatPrice } from '@/lib/format';
@@ -13,15 +13,18 @@ export function AccountView() {
   const router = useRouter();
   const { session, signOut } = useSession();
   const hydrated = useHydrated();
+  const signingOut = useRef(false);
 
   // The demo session lives in the browser, so the redirect happens here. Real auth can do it on the server.
   useEffect(() => {
-    if (hydrated && !session) router.replace('/login');
+    if (hydrated && !session && !signingOut.current) router.replace('/login');
   }, [hydrated, session, router]);
 
   if (!hydrated || !session) return <div className="min-h-64" aria-hidden="true" />;
 
   function onSignOut() {
+    // Without this, the redirect above would send the visitor to the login page instead of home.
+    signingOut.current = true;
     signOut();
     router.push('/');
   }
