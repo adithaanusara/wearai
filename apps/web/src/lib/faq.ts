@@ -1,19 +1,18 @@
 import { siteConfig } from '@/config/site';
-import { deliveryMethods, paymentMethods } from '@/data/shipping';
 import { formatPrice } from '@/lib/format';
+import type { CheckoutOptions } from '@/types/api';
 
 export interface FaqItem {
   question: string;
   answer: string;
 }
 
-/** Answers that quote fees or payment options are built from the same data the checkout uses. */
-export function getFaqItems(): FaqItem[] {
+/** Answers that quote fees or payment options are built from the same options the checkout uses. */
+export function getFaqItems({ deliveryMethods, paymentMethods }: CheckoutOptions): FaqItem[] {
   const delivery = deliveryMethods
     .map((method) => {
       const fee = method.fee === 0 ? 'free' : formatPrice(method.fee);
-      const free =
-        method.freeOver !== undefined ? `, free over ${formatPrice(method.freeOver)}` : '';
+      const free = method.freeOver !== null ? `, free over ${formatPrice(method.freeOver)}` : '';
       return `${method.label} is ${fee}${free} (${method.estimate})`;
     })
     .join('. ');

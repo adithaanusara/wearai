@@ -1,22 +1,43 @@
 import { notFound } from 'next/navigation';
-import type { CollectionPage, Page, ProductDetail, Review } from '@/types/api';
+import type {
+  CheckoutOptions,
+  CollectionPage,
+  Order,
+  OrderRequest,
+  Page,
+  ProductDetail,
+  Quote,
+  Review,
+} from '@/types/api';
+import type { CartItem } from '@/types/cart';
 import type { Product } from '@/types/product';
 
 /**
- * Client for the store API, for use in server components. The browser reaches the API through
- * the /api proxy instead (see next.config.ts), so this module reads a server-side setting.
+ * Client for the store API. On the server it calls the API directly (API_URL); in the browser it
+ * uses the same-origin /api proxy (see next.config.ts), so cookies work and there is no CORS.
  */
 const API_URL = process.env.API_URL ?? 'http://localhost:8000';
 
+const baseUrl = () => (typeof window === 'undefined' ? API_URL : '');
+
 export const MAX_QUERY_LENGTH = 100;
+
+/** One thing wrong with a request, as reported by the API (a 422). */
+export interface ApiProblem {
+  /** Where the problem is, such as ['body', 'email'] or ['body', 'items', 1, 'size']. */
+  loc: (string | number)[];
+  msg: string;
+}
 
 export class ApiError extends Error {
   readonly status: number;
+  readonly problems: ApiProblem[];
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, problems: ApiProblem[] = []) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.problems = problems;
   }
 }
 
@@ -35,28 +56,53 @@ export function buildQuery(query: Record<string, QueryValue> = {}): string {
   return text ? `?${text}` : '';
 }
 
-async function readDetail(response: Response): Promise<string> {
+function isProblem(value: unknown): value is ApiProblem {
+  const candidate = value as Partial<ApiProblem> | null;
+  return Array.isArray(candidate?.loc) && typeof candidate?.msg === 'string';
+}
+
+async function readError(response: Response): Promise<ApiError> {
+  const fallback = `Request failed (${response.status})`;
   try {
     const body: unknown = await response.json();
     const detail = (body as { detail?: unknown }).detail;
-    if (typeof detail === 'string') return detail;
+    if (typeof detail === 'string') return new ApiError(response.status, detail);
+    if (Array.isArray(detail)) {
+      const problems = detail.filter(isProblem);
+      return new ApiError(response.status, problems[0]?.msg ?? fallback, problems);
+    }
   } catch {
-    // Not JSON; fall through to the generic message.
+    // Not JSON; use the generic message.
   }
-  return `Request failed (${response.status})`;
+  return new ApiError(response.status, fallback);
 }
 
-async function request<T>(path: string, query?: Record<string, QueryValue>): Promise<T> {
+interface RequestOptions {
+  query?: Record<string, QueryValue>;
+  method?: 'GET' | 'POST';
+  body?: unknown;
+  headers?: Record<string, string>;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { query, method = 'GET', body, headers } = options;
+
   let response: Response;
   try {
-    response = await fetch(`${API_URL}/api/v1${path}${buildQuery(query)}`, {
+    response = await fetch(`${baseUrl()}/api/v1${path}${buildQuery(query)}`, {
+      method,
       cache: 'no-store',
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...headers,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(503, 'The store service is unavailable.');
   }
-  if (!response.ok) throw new ApiError(response.status, await readDetail(response));
+  if (!response.ok) throw await readError(response);
   return (await response.json()) as T;
 }
 
@@ -74,17 +120,34 @@ export async function orNotFound<T>(promise: Promise<T>): Promise<T> {
 const segment = encodeURIComponent;
 
 export const getProducts = (query?: Record<string, QueryValue>) =>
-  request<Page<Product>>('/products', query);
+  request<Page<Product>>('/products', { query });
+
+/** Looks up specific products, such as the ones in the cart. Ids that do not exist are missing. */
+export const getProductsByIds = (ids: string[]) => getProducts({ id: ids, pageSize: 100 });
 
 export const getCollection = (slug: string, query?: Record<string, QueryValue>) =>
-  request<CollectionPage>(`/collections/${segment(slug)}`, query);
+  request<CollectionPage>(`/collections/${segment(slug)}`, { query });
 
 export const getProduct = (slug: string) => request<ProductDetail>(`/products/${segment(slug)}`);
 
 export const getReviews = (slug: string) => request<Review[]>(`/products/${segment(slug)}/reviews`);
 
 export const getRelatedProducts = (slug: string, limit = 4) =>
-  request<Product[]>(`/products/${segment(slug)}/related`, { limit });
+  request<Product[]>(`/products/${segment(slug)}/related`, { query: { limit } });
 
 export const searchProducts = (query: string, page = 1) =>
-  request<Page<Product>>('/search', { q: query, page: page > 1 ? page : undefined });
+  request<Page<Product>>('/search', { query: { q: query, page: page > 1 ? page : undefined } });
+
+export const getCheckoutOptions = () => request<CheckoutOptions>('/checkout/options');
+
+/** The server's price for a cart. The browser's own arithmetic is for display only. */
+export const quoteCart = (items: CartItem[], deliveryMethod: string) =>
+  request<Quote>('/checkout/quote', { method: 'POST', body: { items, deliveryMethod } });
+
+/** Places an order. Retrying with the same key returns the original order instead of a second one. */
+export const placeOrder = (order: OrderRequest, idempotencyKey: string) =>
+  request<Order>('/orders', {
+    method: 'POST',
+    body: order,
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });

@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
 import { PolicyHeading, PolicyPage } from '@/components/layout/PolicyPage';
-import { deliveryMethods } from '@/data/shipping';
+import { getCheckoutOptions } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Shipping policy' };
 
-export default function ShippingPage() {
+// Delivery fees come from the store API, so this page renders on request.
+export const dynamic = 'force-dynamic';
+
+export default async function ShippingPage() {
+  const { deliveryMethods } = await getCheckoutOptions();
+
   return (
     <PolicyPage title="Shipping policy">
       <p>We deliver across Sri Lanka. Choose a delivery method at checkout.</p>
@@ -34,7 +39,7 @@ export default function ShippingPage() {
               <td className="py-3 pr-4">{method.estimate}</td>
               <td className="py-3">
                 {method.fee === 0 ? 'Free' : formatPrice(method.fee)}
-                {method.freeOver !== undefined && (
+                {method.freeOver !== null && (
                   <span className="text-muted block text-xs">
                     Free over {formatPrice(method.freeOver)}
                   </span>

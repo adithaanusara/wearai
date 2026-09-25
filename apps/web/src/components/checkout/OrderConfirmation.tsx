@@ -2,12 +2,18 @@
 
 import { OrderSummary } from '@/components/cart/OrderSummary';
 import { ButtonLink } from '@/components/ui/ButtonLink';
-import { deliveryMethods, paymentMethods } from '@/data/shipping';
 import { formatPrice } from '@/lib/format';
 import { readOrder } from '@/lib/order-store';
 import { useHydrated } from '@/lib/use-hydrated';
+import type { CheckoutOptions } from '@/types/api';
 
-export function OrderConfirmation({ reference }: { reference: string | undefined }) {
+interface OrderConfirmationProps {
+  reference: string | undefined;
+  /** Used to describe the delivery and payment choices. Null when the API could not be reached. */
+  options: CheckoutOptions | null;
+}
+
+export function OrderConfirmation({ reference, options }: OrderConfirmationProps) {
   const hydrated = useHydrated();
   if (!hydrated) return <div className="min-h-64" aria-hidden="true" />;
 
@@ -26,8 +32,8 @@ export function OrderConfirmation({ reference }: { reference: string | undefined
     );
   }
 
-  const delivery = deliveryMethods.find((method) => method.id === order.deliveryMethod);
-  const payment = paymentMethods.find((method) => method.id === order.paymentMethod);
+  const delivery = options?.deliveryMethods.find((method) => method.id === order.deliveryMethod);
+  const payment = options?.paymentMethods.find((method) => method.id === order.paymentMethod);
 
   return (
     <div className="mt-8 space-y-8">
@@ -61,7 +67,7 @@ export function OrderConfirmation({ reference }: { reference: string | undefined
                   {line.colour} · {line.size} · Qty {line.quantity}
                 </span>
               </span>
-              <span className="shrink-0">{formatPrice(line.total)}</span>
+              <span className="shrink-0">{formatPrice(line.lineTotal)}</span>
             </li>
           ))}
         </ul>

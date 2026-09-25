@@ -1,15 +1,12 @@
-import type { PlacedOrder } from '@/types/order';
+import type { Order } from '@/types/api';
 
 const STORAGE_KEY = 'wearai-last-order';
 
-/** A short, readable reference such as WA-LM3K9Q2X. The API will issue real order numbers later. */
-export function createOrderReference(now: number = Date.now()): string {
-  const random = Math.random().toString(36).slice(2, 4).toUpperCase();
-  return `WA-${now.toString(36).toUpperCase()}${random}`;
-}
-
-/** Keeps the last order for the confirmation page until the real API stores orders. */
-export function saveOrder(order: PlacedOrder): void {
+/**
+ * Keeps the order the server returned so the confirmation page can show it. Guests cannot look an
+ * order up later, so this handover is how they see it.
+ */
+export function saveOrder(order: Order): void {
   try {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(order));
   } catch {
@@ -17,11 +14,11 @@ export function saveOrder(order: PlacedOrder): void {
   }
 }
 
-export function readOrder(reference: string): PlacedOrder | null {
+export function readOrder(reference: string): Order | null {
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const order = JSON.parse(raw) as PlacedOrder;
+    const order = JSON.parse(raw) as Order;
     return order.reference === reference && Array.isArray(order.lines) ? order : null;
   } catch {
     return null;

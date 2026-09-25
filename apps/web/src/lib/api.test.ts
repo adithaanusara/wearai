@@ -3,10 +3,14 @@ import {
   ApiError,
   buildQuery,
   getProduct,
+  getProductsByIds,
   getRelatedProducts,
   orNotFound,
+  placeOrder,
+  quoteCart,
   searchProducts,
 } from '@/lib/api';
+import type { OrderRequest } from '@/types/api';
 
 function respond(status: number, body: unknown) {
   return vi.fn().mockResolvedValue(
@@ -88,7 +92,101 @@ describe('requests', () => {
   });
 });
 
+describe('cart and checkout requests', () => {
+  it('looks products up by id in one request', async () => {
+    const fetchMock = respond(200, { items: [] });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getProductsByIds(['w-tee-01', 'm-jog-01']);
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'http://localhost:8000/api/v1/products?id=w-tee-01&id=m-jog-01&pageSize=100',
+    );
+  });
+
+  it('asks the server to price a cart with a JSON POST', async () => {
+    const fetchMock = respond(200, { lines: [], subtotal: 0, shipping: 0, total: 0 });
+    vi.stubGlobal('fetch', fetchMock);
+    const items = [{ productId: 'w-tee-01', size: 'M', quantity: 2 }];
+
+    await quoteCart(items, 'express');
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://localhost:8000/api/v1/checkout/quote');
+    expect(options.method).toBe('POST');
+    expect(options.headers['Content-Type']).toBe('application/json');
+    expect(JSON.parse(options.body)).toEqual({ items, deliveryMethod: 'express' });
+  });
+
+  it('sends the idempotency key with an order and never any prices', async () => {
+    const fetchMock = respond(201, { reference: 'WA-TEST' });
+    vi.stubGlobal('fetch', fetchMock);
+    const order: OrderRequest = {
+      items: [{ productId: 'w-tee-01', size: 'M', quantity: 1 }],
+      deliveryMethod: 'standard',
+      paymentMethod: 'cod',
+      email: 'a@example.com',
+      phone: '0771234567',
+      fullName: 'A',
+      address1: 'B',
+      address2: '',
+      city: 'C',
+      province: 'Western',
+      district: 'Colombo',
+      postalCode: '10250',
+    };
+
+    await placeOrder(order, 'key-12345678');
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://localhost:8000/api/v1/orders');
+    expect(options.headers['Idempotency-Key']).toBe('key-12345678');
+    expect(Object.keys(JSON.parse(options.body)).join()).not.toMatch(/price|total|shipping/i);
+  });
+
+  it('does not send a body or content type on plain reads', async () => {
+    const fetchMock = respond(200, {});
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getProduct('tee');
+
+    const options = fetchMock.mock.calls[0][1];
+    expect(options.method).toBe('GET');
+    expect(options.body).toBeUndefined();
+    expect(options.headers['Content-Type']).toBeUndefined();
+  });
+});
+
 describe('errors', () => {
+  it('exposes field problems from a 422 so forms can show them', async () => {
+    vi.stubGlobal(
+      'fetch',
+      respond(422, {
+        detail: [
+          { loc: ['body', 'email'], msg: 'Enter a valid email address.', type: 'value_error' },
+          { loc: ['body', 'items', 1, 'size'], msg: 'Size unavailable.', type: 'value_error' },
+        ],
+      }),
+    );
+
+    const error = await quoteCart([], 'standard').catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 422, message: 'Enter a valid email address.' });
+    expect((error as ApiError).problems.map((p) => p.loc)).toEqual([
+      ['body', 'email'],
+      ['body', 'items', 1, 'size'],
+    ]);
+  });
+
+  it('ignores malformed problem entries', async () => {
+    vi.stubGlobal('fetch', respond(422, { detail: [{ nope: 1 }, 'text', null] }));
+
+    const error = await quoteCart([], 'standard').catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ status: 422, problems: [], message: 'Request failed (422)' });
+  });
+
   it('turns an API error into an ApiError with the status and message', async () => {
     vi.stubGlobal('fetch', respond(404, { detail: 'Product not found' }));
 

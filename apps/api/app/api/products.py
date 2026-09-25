@@ -1,6 +1,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from pydantic import StringConstraints
 from sqlalchemy.orm import Session
 
 from app.api.deps import FiltersDep, PaginationDep
@@ -16,6 +17,9 @@ from app.schemas import (
 from app.services import catalogue
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+# The cart looks its products up by id, and a cart is limited to this many lines.
+MAX_IDS = 50
 
 DbDep = Annotated[Session, Depends(get_db)]
 SlugPath = Annotated[str, Path(max_length=100)]
@@ -35,9 +39,14 @@ def list_products(
     pagination: PaginationDep,
     gender: Literal["women", "men", "unisex"] | None = None,
     category: Annotated[str | None, Query(max_length=40)] = None,
+    id: Annotated[
+        list[Annotated[str, StringConstraints(max_length=32)]] | None,
+        Query(max_length=MAX_IDS),
+    ] = None,
 ) -> Page[ProductOut]:
     filters.gender = gender
     filters.category = category
+    filters.ids = id or []
     products, total = catalogue.list_products(
         db, filters, page=pagination.page, page_size=pagination.page_size
     )

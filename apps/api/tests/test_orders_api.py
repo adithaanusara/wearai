@@ -308,6 +308,14 @@ def test_missing_required_fields_are_rejected(client: TestClient) -> None:
     assert client.post(ORDERS, content=b"not json").status_code == 422
 
 
+def test_error_messages_are_readable(client: TestClient) -> None:
+    bad_email = place_order(client, email="nimali@").json()["detail"][0]
+    missing = client.post(ORDERS, json={}).json()["detail"]
+
+    assert bad_email["msg"] == "Enter a valid email address."
+    assert {problem["msg"] for problem in missing} == {"This field is required."}
+
+
 def test_errors_never_echo_what_was_submitted(client: TestClient) -> None:
     response = place_order(client, phone="secret-number-123")
 
