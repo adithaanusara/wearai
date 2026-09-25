@@ -24,3 +24,5 @@ pnpm lint
 pnpm test
 pnpm build
 ```
+
+For changes in `apps/api`, run `ruff check .` and `pytest` from that folder (see its README).
