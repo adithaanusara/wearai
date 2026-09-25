@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { siteConfig } from '@/config/site';
 import { SessionProvider } from '@/components/account/SessionProvider';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CartProvider } from '@/components/cart/CartProvider';
 import { SkipLink } from '@/components/layout/SkipLink';
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             <SkipLink />
             {children}
             <CartDrawer />
+            <ChatWidget />
           </CartProvider>
         </SessionProvider>
       </body>
