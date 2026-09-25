@@ -2,6 +2,7 @@
 
 import hashlib
 import secrets
+import string
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
@@ -53,6 +54,9 @@ def password_problem(password: str) -> str | None:
         return f"Use at least {MIN_PASSWORD_LENGTH} characters."
     if len(password) > MAX_PASSWORD_LENGTH:
         return f"Use at most {MAX_PASSWORD_LENGTH} characters."
-    if not any(c.isalpha() for c in password) or not any(c.isdigit() for c in password):
+    # ASCII only, like the website: str.isalpha() and isdigit() also accept other scripts.
+    has_letter = any(c in string.ascii_letters for c in password)
+    has_digit = any(c in string.digits for c in password)
+    if not (has_letter and has_digit):
         return "Use at least one letter and one number."
     return None

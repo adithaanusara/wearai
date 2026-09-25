@@ -9,6 +9,7 @@ from app.db import get_db
 from app.models import User
 from app.services import auth
 from app.services.catalogue import Filters, SortKey
+from app.services.orders import InvalidCartError
 
 DEFAULT_PAGE_SIZE = 24
 MAX_PAGE_SIZE = 100
@@ -74,3 +75,17 @@ def require_user(user: Annotated[User | None, Depends(current_user)]) -> User:
 
 TrustedOrigin = Depends(require_trusted_origin)
 UserDep = Annotated[User, Depends(require_user)]
+
+
+def cart_problem(error: InvalidCartError) -> HTTPException:
+    """A 422 in the same shape as request validation errors, pointing at the offending line."""
+    return HTTPException(
+        status_code=422,
+        detail=[
+            {
+                "loc": ["body", "items", error.index, error.field],
+                "msg": error.message,
+                "type": "value_error",
+            }
+        ],
+    )
