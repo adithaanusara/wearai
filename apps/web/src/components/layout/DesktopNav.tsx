@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent, FocusEvent } from 'react';
+import type { FocusEvent } from 'react';
 import { Container } from '@/components/ui/Container';
 import type { NavItem, NavMenu } from '@/data/navigation';
 
@@ -35,12 +35,6 @@ export function DesktopNav({ items }: { items: NavItem[] }) {
     closeTimer.current = window.setTimeout(() => setOpen(null), HOVER_CLOSE_DELAY_MS);
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLLIElement>) {
-    if (event.key !== 'Escape' || !activeLabel) return;
-    closeMenu();
-    event.currentTarget.querySelector('button')?.focus();
-  }
-
   function onBlur(event: FocusEvent<HTMLLIElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) closeMenu();
   }
@@ -50,8 +44,21 @@ export function DesktopNav({ items }: { items: NavItem[] }) {
     function onPointerDown(event: PointerEvent) {
       if (!navRef.current?.contains(event.target as Node)) setOpen(null);
     }
+    // Escape must dismiss the menu however it was opened, including by hover with no focus inside it.
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      const nav = navRef.current;
+      const trigger = nav?.querySelector<HTMLElement>('button[aria-expanded="true"]');
+      const focusWasInside = nav?.contains(document.activeElement);
+      setOpen(null);
+      if (focusWasInside) trigger?.focus();
+    }
     document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, [activeLabel]);
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
@@ -81,7 +88,6 @@ export function DesktopNav({ items }: { items: NavItem[] }) {
               key={item.href}
               onPointerEnter={(event) => event.pointerType === 'mouse' && openMenu(item.label)}
               onPointerLeave={(event) => event.pointerType === 'mouse' && closeMenuSoon()}
-              onKeyDown={onKeyDown}
               onBlur={onBlur}
             >
               <button
