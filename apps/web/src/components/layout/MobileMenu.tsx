@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { useSession } from '@/components/account/SessionProvider';
 import { ChevronIcon, CloseIcon, MenuIcon } from '@/components/ui/icons';
 import type { NavItem, NavLink } from '@/data/navigation';
 
 export function MobileMenu({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+  const { session } = useSession();
   // Storing the path the menu was opened on closes it automatically on navigation.
   const [openedAt, setOpenedAt] = useState<string | null>(null);
   const open = openedAt === pathname;
@@ -69,6 +71,11 @@ export function MobileMenu({ items }: { items: NavItem[] }) {
             {items.map((item) => (
               <MobileNavItem key={item.href} item={item} />
             ))}
+            <li>
+              <Link href={session ? '/account' : '/login'} className={`${rowClass} block`}>
+                {session ? 'My account' : 'Sign in'}
+              </Link>
+            </li>
           </ul>
         </nav>
       )}
