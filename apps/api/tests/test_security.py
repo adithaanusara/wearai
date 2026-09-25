@@ -44,6 +44,8 @@ def test_tokens_are_long_random_and_hashed_deterministically() -> None:
         ("abcdefgh", "letter and one number"),
         ("12345678", "letter and one number"),
         ("", "at least 8"),
+        ("éééééééé1", "letter and one number"),  # accented letters are not ASCII letters
+        ("abcdefgh٣", "letter and one number"),  # an Arabic-Indic digit is not an ASCII digit
     ],
 )
 def test_password_rules_match_the_website(password: str, expected: str | None) -> None:

@@ -53,6 +53,15 @@ Pagination uses `page` and `pageSize` (default 24, at most 100). Unknown slugs r
 
 Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
 
+## Orders
+
+- **The server decides every price.** A request says which products, sizes and quantities; prices, shipping and the total come from the database. Unknown fields, including `price`, `total` and `shipping`, are rejected with 422.
+- Each order line stores the product's name, colour, size and unit price at purchase time, so history never changes when the catalogue does.
+- Send an `Idempotency-Key` header (8 to 64 letters, digits, `-` or `_`) so a double click or retry returns the original order instead of creating a second one. Reusing a key with different data returns 409.
+- Reading someone else's order returns the same 404 as a missing one, so references cannot be probed.
+- Validation matches the website (Sri Lankan mobile numbers, 5-digit postal codes, districts within their province) and only accepts ASCII digits.
+- Not covered yet: stock levels, payment processing, order emails, admin status changes and guest order lookup.
+
 ## Tests and linting
 
 ```bash
