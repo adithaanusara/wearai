@@ -3,11 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
-from app.api.deps import TrustedOrigin, UserDep
+from app.api.deps import TrustedOrigin, UserDep, current_user
 from app.config import settings
 from app.db import get_db
 from app.models import User
-from app.schemas import LoginIn, RegisterIn, UserOut
+from app.schemas import LoginIn, RegisterIn, SessionOut, UserOut
 from app.services import auth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -86,3 +86,10 @@ def logout(request: Request, response: Response, db: DbDep) -> None:
 def me(user: UserDep, response: Response) -> UserOut:
     response.headers["Cache-Control"] = "no-store"
     return _user_out(user)
+
+
+@router.get("/session", response_model=SessionOut)
+def session(user: Annotated[User | None, Depends(current_user)], response: Response) -> SessionOut:
+    """Like /me, but a visitor gets a 200 with no user, so the website can ask on every page."""
+    response.headers["Cache-Control"] = "no-store"
+    return SessionOut(user=_user_out(user) if user else None)

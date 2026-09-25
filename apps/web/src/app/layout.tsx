@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { siteConfig } from '@/config/site';
-import { SessionProvider } from '@/components/account/SessionProvider';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { QueryProvider } from '@/components/providers';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -24,14 +23,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <QueryProvider>
-          <SessionProvider>
-            <CartProvider>
-              <SkipLink />
-              {children}
-              <CartDrawer />
-              <ChatWidget />
-            </CartProvider>
-          </SessionProvider>
+          <CartProvider>
+            <SkipLink />
+            {children}
+            <CartDrawer />
+            <ChatWidget />
+          </CartProvider>
         </QueryProvider>
       </body>
     </html>

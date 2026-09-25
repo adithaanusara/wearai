@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
+import { useSession } from '@/components/account/useSession';
 import { useCart } from '@/components/cart/CartProvider';
 import { OrderSummary } from '@/components/cart/OrderSummary';
 import { ChoiceGroup } from '@/components/checkout/ChoiceGroup';
@@ -35,11 +36,14 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
   const router = useRouter();
   const { items, clearCart } = useCart();
   const hydrated = useHydrated();
+  const { session } = useSession();
   const formRef = useRef<HTMLFormElement>(null);
   // A ref, not state: a fast double click fires twice before a state update can disable the button.
   const submitting = useRef(false);
 
   const [values, setValues] = useState(initialValues);
+  // Fields the shopper has edited. The others may be pre-filled from their account.
+  const [touched, setTouched] = useState<Set<keyof CheckoutValues>>(() => new Set());
   const [errors, setErrors] = useState<CheckoutErrors>({});
   const [banner, setBanner] = useState<{ text: string; cartLink?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,10 +58,17 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
   });
   const cartRejected = quote.error instanceof ApiError && quote.error.status === 422;
 
+  const shown: CheckoutValues = {
+    ...values,
+    email: touched.has('email') ? values.email : (session?.email ?? values.email),
+    fullName: touched.has('fullName') ? values.fullName : (session?.name ?? values.fullName),
+  };
+
   const districts =
     options.provinces.find((province) => province.name === values.province)?.districts ?? [];
 
   function update(name: keyof CheckoutValues, value: string) {
+    setTouched((current) => new Set(current).add(name));
     setValues((current) => ({
       ...current,
       [name]: value,
@@ -98,7 +109,7 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
     setErrors({});
 
     try {
-      const order = await placeOrder({ ...values, items }, getCheckoutKey());
+      const order = await placeOrder({ ...shown, items }, getCheckoutKey());
       // The cart is cleared only now that the server has confirmed the order.
       saveOrder(order);
       clearCheckoutKey();
@@ -148,7 +159,7 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
               label="Email"
               type="email"
               autoComplete="email"
-              value={values.email}
+              value={shown.email}
               error={errors.email}
               onChange={(event) => update('email', event.target.value)}
             />
@@ -175,7 +186,7 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
                 name="fullName"
                 label="Full name"
                 autoComplete="name"
-                value={values.fullName}
+                value={shown.fullName}
                 error={errors.fullName}
                 onChange={(event) => update('fullName', event.target.value)}
               />

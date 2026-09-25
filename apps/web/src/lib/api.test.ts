@@ -3,21 +3,28 @@ import {
   ApiError,
   buildQuery,
   getProduct,
+  getMe,
+  getMyOrders,
   getProductsByIds,
   getRelatedProducts,
+  login,
+  logout,
   orNotFound,
   placeOrder,
   quoteCart,
+  register,
   searchProducts,
 } from '@/lib/api';
 import type { OrderRequest } from '@/types/api';
 
 function respond(status: number, body: unknown) {
-  return vi.fn().mockResolvedValue(
-    new Response(typeof body === 'string' ? body : JSON.stringify(body), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    }),
+  // A new Response for every call, because a response body can only be read once.
+  return vi.fn().mockImplementation(
+    () =>
+      new Response(typeof body === 'string' ? body : JSON.stringify(body), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      }),
   );
 }
 
@@ -154,6 +161,81 @@ describe('cart and checkout requests', () => {
     expect(options.method).toBe('GET');
     expect(options.body).toBeUndefined();
     expect(options.headers['Content-Type']).toBeUndefined();
+  });
+});
+
+describe('authentication requests', () => {
+  it('signs in with a JSON POST of the credentials only', async () => {
+    const fetchMock = respond(200, { id: 1, name: 'A', email: 'a@example.com' });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(login('a@example.com', 'sunrise2026')).resolves.toMatchObject({ id: 1 });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://localhost:8000/api/v1/auth/login');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({ email: 'a@example.com', password: 'sunrise2026' });
+  });
+
+  it('registers with name, email and password', async () => {
+    const fetchMock = respond(201, { id: 2, name: 'N', email: 'n@example.com' });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await register('N', 'n@example.com', 'sunrise2026');
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      name: 'N',
+      email: 'n@example.com',
+      password: 'sunrise2026',
+    });
+  });
+
+  it('logs out without trying to read a body', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+
+    await expect(logout()).resolves.toBeUndefined();
+  });
+
+  it('asks the session endpoint and returns the user', async () => {
+    const fetchMock = respond(200, { user: { id: 1, name: 'A', email: 'a@example.com' } });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getMe()).resolves.toEqual({ id: 1, name: 'A', email: 'a@example.com' });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8000/api/v1/auth/session');
+  });
+
+  it('returns null for a visitor, without any error', async () => {
+    vi.stubGlobal('fetch', respond(200, { user: null }));
+
+    await expect(getMe()).resolves.toBeNull();
+  });
+
+  it('still reports real failures', async () => {
+    vi.stubGlobal('fetch', respond(500, { detail: 'boom' }));
+
+    await expect(getMe()).rejects.toMatchObject({ status: 500 });
+  });
+
+  it('passes the cookie on when a server component asks', async () => {
+    const fetchMock = respond(200, { id: 1, name: 'A', email: 'a@example.com' });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getMe({ Cookie: 'session=abc' });
+
+    expect(fetchMock.mock.calls[0][1].headers.Cookie).toBe('session=abc');
+  });
+
+  it('asks for a page of orders with the cookie', async () => {
+    const fetchMock = respond(200, { items: [], total: 0, page: 2, pageSize: 24 });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getMyOrders(2, { Cookie: 'session=abc' });
+    await getMyOrders(1);
+
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8000/api/v1/orders?page=2');
+    expect(fetchMock.mock.calls[0][1].headers.Cookie).toBe('session=abc');
+    expect(fetchMock.mock.calls[1][0]).toBe('http://localhost:8000/api/v1/orders');
   });
 });
 

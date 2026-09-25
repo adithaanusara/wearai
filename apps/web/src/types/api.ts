@@ -102,3 +102,9 @@ export interface OrderRequest {
   district: string;
   postalCode: string;
 }
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+}
