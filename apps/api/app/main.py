@@ -1,10 +1,25 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from app.api import collections, health, products, search
+from app.api import auth, collections, health, products, search
 from app.config import settings
 
 API_PREFIX = "/api/v1"
+
+
+def _validation_error(_: Request, error: RequestValidationError) -> JSONResponse:
+    """A 422 that says what is wrong but never echoes the submitted values, such as passwords."""
+    problems = [
+        {
+            "loc": item["loc"],
+            "msg": item["msg"].removeprefix("Value error, "),
+            "type": item["type"],
+        }
+        for item in error.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": problems})
 
 
 def create_app() -> FastAPI:
@@ -17,7 +32,9 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type", "Authorization"],
     )
+    app.add_exception_handler(RequestValidationError, _validation_error)
     app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(auth.router, prefix=API_PREFIX)
     app.include_router(products.router, prefix=API_PREFIX)
     app.include_router(collections.router, prefix=API_PREFIX)
     app.include_router(search.router, prefix=API_PREFIX)

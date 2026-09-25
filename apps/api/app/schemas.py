@@ -1,8 +1,9 @@
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from pydantic.alias_generators import to_camel
 
+from app import security
 from app.models import Product, Review
 
 
@@ -106,3 +107,51 @@ class CollectionOut(Page[ProductOut]):
     slug: str
     title: str
     filter_options: FilterOptionsOut
+
+
+def _clean_email(value: str) -> str:
+    return value.strip().lower()
+
+
+class RegisterIn(CamelModel):
+    name: str
+    email: EmailStr
+    password: str
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        value = value.strip()
+        if not value or len(value) > 120:
+            raise ValueError("Enter a name of up to 120 characters.")
+        return value
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, value: str) -> str:
+        return _clean_email(value)
+
+    @field_validator("password")
+    @classmethod
+    def _password(cls, value: str) -> str:
+        problem = security.password_problem(value)
+        if problem:
+            raise ValueError(problem)
+        return value
+
+
+class LoginIn(CamelModel):
+    email: EmailStr
+    # Only a length limit here; strength rules apply when a password is chosen.
+    password: str = Field(min_length=1, max_length=security.MAX_PASSWORD_LENGTH)
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, value: str) -> str:
+        return _clean_email(value)
+
+
+class UserOut(CamelModel):
+    id: int
+    name: str
+    email: str
