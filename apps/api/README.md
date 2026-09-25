@@ -43,6 +43,16 @@ All under `/api/v1`. JSON uses camelCase, matching the website's types. Interact
 
 Pagination uses `page` and `pageSize` (default 24, at most 100). Unknown slugs return 404, and invalid query values return 422 instead of being ignored.
 
+## Authentication
+
+- Passwords are hashed with Argon2id. Only the hash is stored.
+- A sign-in sets a random token in an `HttpOnly`, `SameSite=Lax` cookie (`Secure` when `COOKIE_SECURE=true`). The database stores only the token's SHA-256 hash, sessions last 14 days, and logout deletes them.
+- Browser POSTs whose `Origin` is not in `CORS_ORIGINS` are rejected with 403.
+- Validation errors never echo the submitted values, so passwords do not appear in responses.
+- Not covered yet: rate limiting and lockout for repeated failed logins (do this at the hosting layer or with a shared store such as Redis), email verification, and password reset.
+
+Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
+
 ## Tests and linting
 
 ```bash

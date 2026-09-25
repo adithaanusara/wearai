@@ -1,8 +1,13 @@
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, HTTPException, Query, Request
+from sqlalchemy.orm import Session
 
+from app.config import settings
+from app.db import get_db
+from app.models import User
+from app.services import auth
 from app.services.catalogue import Filters, SortKey
 
 DEFAULT_PAGE_SIZE = 24
@@ -42,3 +47,30 @@ def filter_params(
 
 PaginationDep = Annotated[Pagination, Depends(pagination_params)]
 FiltersDep = Annotated[Filters, Depends(filter_params)]
+
+
+def require_trusted_origin(request: Request) -> None:
+    """Rejects browser requests that come from a site we do not trust (CSRF defence).
+
+    Browsers always send an Origin header on cross-site POSTs. Requests without one, such as
+    curl, cannot be forged from another site, so they are let through.
+    """
+    origin = request.headers.get("origin")
+    if origin is not None and origin not in settings.cors_origins:
+        raise HTTPException(status_code=403, detail="Origin not allowed")
+
+
+def current_user(request: Request, db: Annotated[Session, Depends(get_db)]) -> User | None:
+    """The signed-in user from the session cookie, or None."""
+    token = request.cookies.get(settings.session_cookie_name)
+    return auth.user_for_token(db, token) if token else None
+
+
+def require_user(user: Annotated[User | None, Depends(current_user)]) -> User:
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
+
+TrustedOrigin = Depends(require_trusted_origin)
+UserDep = Annotated[User, Depends(require_user)]

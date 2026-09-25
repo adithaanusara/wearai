@@ -108,3 +108,10 @@ def test_user_gets_a_creation_time(db: Session) -> None:
     db.commit()
 
     assert user.created_at is not None
+
+
+def test_user_email_must_be_lowercase(db: Session) -> None:
+    db.add(User(email="Mixed@Example.com", name="A", password_hash="x"))
+
+    with pytest.raises(IntegrityError):
+        db.flush()

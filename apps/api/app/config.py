@@ -9,5 +9,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://wearai:wearai@localhost:5432/wearai"
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    session_cookie_name: str = "session"
+    session_days: int = 14
+    # Set to true in production so the cookie is only sent over HTTPS.
+    cookie_secure: bool = False
+
 
 settings = Settings()
