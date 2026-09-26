@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings>=2.4,<3",
     "pydantic[email]>=2.8,<3",
     "argon2-cffi>=23.1,<26",
+    "anthropic>=1,<2",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +27,7 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["live: calls the real Anthropic API and costs money; opt in with RUN_LIVE_CHAT_TESTS=1"]
 
 [tool.ruff]
 line-length = 100
