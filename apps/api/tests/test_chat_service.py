@@ -262,6 +262,38 @@ def test_logs_name_the_error_but_never_its_text_or_the_customers_words(
     assert "0771234567" not in caplog.text
 
 
+def test_a_low_credit_balance_is_named_in_the_log_without_the_providers_text(
+    db: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    response = httpx2.Response(400, request=_request())
+    error = anthropic.BadRequestError(
+        "Your credit balance is too low to access the Anthropic API.", response=response, body=None
+    )
+
+    with pytest.raises(ChatUnavailableError):
+        run_chat(ScriptedGateway(error), db, [Turn("user", "private words 0771234567")])
+
+    assert "credit balance is too low; add credits" in caplog.text
+    assert "0771234567" not in caplog.text and "access the Anthropic API" not in caplog.text
+
+
+def test_other_bad_requests_stay_generic_in_the_log(
+    db: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    response = httpx2.Response(400, request=_request())
+    error = anthropic.BadRequestError(
+        "messages.0.content: something private", response=response, body=None
+    )
+
+    with pytest.raises(ChatUnavailableError):
+        run_chat(ScriptedGateway(error), db, ASK)
+
+    assert "credit balance" not in caplog.text and "something private" not in caplog.text
+    assert "BadRequestError status=400" in caplog.text
+
+
 def test_non_provider_bugs_are_not_hidden(db: Session) -> None:
     with pytest.raises(ZeroDivisionError):
         result_of(ScriptedGateway(ZeroDivisionError()), db)

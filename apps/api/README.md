@@ -67,7 +67,7 @@ Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
 
 `POST /chat` takes `{ "messages": [{ "role": "user" | "assistant", "text": "..." }] }` and returns `{ "reply": { "text": "...", "productIds": [...] } }`.
 
-- The Anthropic API key is read from `ANTHROPIC_API_KEY` on the server and never reaches a browser. With no key, or `CHAT_ENABLED=false`, the endpoint answers 503 and the website shows that the assistant is unavailable.
+- The Anthropic API key is read from `ANTHROPIC_API_KEY` on the server and never reaches a browser. Put it in `.env`, which git ignores, and never in `.env.example`, which is committed. The Anthropic account also needs credits (Plans & Billing in the Anthropic console); with none, every request fails and the log says the credit balance is too low. With no key, or `CHAT_ENABLED=false`, the endpoint answers 503 and the website shows that the assistant is unavailable.
 - The assistant has three read-only tools: search products, get one product, and store information (delivery, payment, sizing, returns, contact). It has no tools for orders or accounts, so it cannot see or change personal data, even if a message tries to trick it.
 - Product cards only ever show products that a tool returned in that conversation. An id the model invents is dropped.
 - The store does not track stock, so the assistant says which sizes are offered and never claims something is in stock.

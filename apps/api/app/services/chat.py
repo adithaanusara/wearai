@@ -176,6 +176,9 @@ def _call(gateway: ModelGateway, params: dict[str, Any]) -> Any:
             status,
             getattr(error, "request_id", None),
         )
+        if isinstance(error, anthropic.BadRequestError) and "credit balance" in str(error).lower():
+            # A billing problem, not the visitor's doing, so it is said plainly to the operator.
+            logger.error("chat provider: the Anthropic credit balance is too low; add credits")
         raise ChatUnavailableError from error
 
 
