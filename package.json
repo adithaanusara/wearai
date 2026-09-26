@@ -6,6 +6,8 @@
     "dev": "pnpm --filter web dev",
     "db": "docker compose up -d db",
     "dev:api": "cd apps/api && . .venv/bin/activate && uvicorn app.main:app --reload",
+    "dev:fake-ai": "cd apps/api && . .venv/bin/activate && python -m devtools.fake_anthropic",
+    "dev:api:fake": "cd apps/api && . .venv/bin/activate && ANTHROPIC_API_KEY=dev-fake-key ANTHROPIC_BASE_URL=http://127.0.0.1:9999 uvicorn app.main:app --reload",
     "build": "pnpm --filter web build",
     "lint": "pnpm --filter web lint",
     "test": "pnpm --filter web test",

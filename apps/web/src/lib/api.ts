@@ -11,6 +11,7 @@ import type {
   User,
 } from '@/types/api';
 import type { CartItem } from '@/types/cart';
+import type { ChatRequest, ChatResponse } from '@/types/chat';
 import type { Product } from '@/types/product';
 
 /**
@@ -196,3 +197,7 @@ export const logout = () => request<void>('/auth/logout', { method: 'POST' });
 
 export const getMyOrders = (page = 1, headers?: AuthHeaders) =>
   request<Page<Order>>('/orders', { query: { page: page > 1 ? page : undefined }, headers });
+
+/** Asks the shopping assistant. Only the conversation is sent: no prices, no personal data. */
+export const sendChat = (messages: ChatRequest['messages']) =>
+  request<ChatResponse>('/chat', { method: 'POST', body: { messages } });

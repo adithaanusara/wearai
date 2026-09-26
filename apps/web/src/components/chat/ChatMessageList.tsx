@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ChatProductCard } from '@/components/chat/ChatProductCard';
-import { products } from '@/data/products';
+import { ChatProducts } from '@/components/chat/ChatProducts';
 import type { ChatMessage } from '@/types/chat';
 
 interface ChatMessageListProps {
@@ -27,10 +26,6 @@ export function ChatMessageList({ messages, pending, onProductNavigate }: ChatMe
     >
       {messages.map((message) => {
         const isUser = message.role === 'user';
-        const suggested = (message.productIds ?? []).flatMap((id) =>
-          products.filter((product) => product.id === id),
-        );
-
         return (
           <div
             key={message.id}
@@ -43,14 +38,8 @@ export function ChatMessageList({ messages, pending, onProductNavigate }: ChatMe
             >
               {message.text}
             </p>
-            {suggested.length > 0 && (
-              <ul className="w-full max-w-[85%] space-y-2">
-                {suggested.map((product) => (
-                  <li key={product.id}>
-                    <ChatProductCard product={product} onNavigate={onProductNavigate} />
-                  </li>
-                ))}
-              </ul>
+            {message.productIds && message.productIds.length > 0 && (
+              <ChatProducts ids={message.productIds} onNavigate={onProductNavigate} />
             )}
           </div>
         );

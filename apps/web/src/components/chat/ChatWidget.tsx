@@ -5,7 +5,7 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatMessageList } from '@/components/chat/ChatMessageList';
 import { ChatIcon, CloseIcon } from '@/components/ui/icons';
 import { siteConfig } from '@/config/site';
-import { sendMessage } from '@/lib/chat-client';
+import { chatErrorMessage, sendMessage, trimHistory } from '@/lib/chat-client';
 import type { ChatMessage } from '@/types/chat';
 
 const assistantName = `${siteConfig.name} Assistant`;
@@ -76,21 +76,15 @@ export function ChatWidget() {
     setPending(true);
 
     try {
-      const { reply } = await sendMessage({
-        messages: history.map(({ role, text: messageText }) => ({ role, text: messageText })),
-      });
+      const { reply } = await sendMessage({ messages: trimHistory(history) });
       setMessages((current) => [
         ...current,
         { id: createId(), role: 'assistant', text: reply.text, productIds: reply.productIds },
       ]);
-    } catch {
+    } catch (error) {
       setMessages((current) => [
         ...current,
-        {
-          id: createId(),
-          role: 'assistant',
-          text: 'Sorry, something went wrong. Please try again.',
-        },
+        { id: createId(), role: 'assistant', text: chatErrorMessage(error), error: true },
       ]);
     } finally {
       setPending(false);

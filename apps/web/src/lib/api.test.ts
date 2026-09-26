@@ -14,6 +14,7 @@ import {
   quoteCart,
   register,
   searchProducts,
+  sendChat,
 } from '@/lib/api';
 import type { OrderRequest } from '@/types/api';
 
@@ -239,6 +240,34 @@ describe('authentication requests', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8000/api/v1/orders?page=2');
     expect(fetchMock.mock.calls[0][1].headers.Cookie).toBe('session=abc');
     expect(fetchMock.mock.calls[1][0]).toBe('http://localhost:8000/api/v1/orders');
+  });
+});
+
+describe('chat request', () => {
+  it('sends only the conversation, as a JSON POST', async () => {
+    const fetchMock = respond(200, { reply: { text: 'Hi', productIds: [] } });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { reply } = await sendChat([{ role: 'user', text: 'hello' }]);
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://localhost:8000/api/v1/chat');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({ messages: [{ role: 'user', text: 'hello' }] });
+    expect(reply.text).toBe('Hi');
+  });
+
+  it('exposes the wait time from a rate-limit error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      respond(429, { detail: { code: 'rate_limited', message: 'Slow down.', retryAfter: 42 } }),
+    );
+
+    const error = (await sendChat([{ role: 'user', text: 'hi' }]).catch(
+      (e: unknown) => e,
+    )) as ApiError;
+
+    expect(error).toMatchObject({ status: 429, code: 'rate_limited', details: { retryAfter: 42 } });
   });
 });
 
