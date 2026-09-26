@@ -63,6 +63,29 @@ Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
 - Validation matches the website (Sri Lankan mobile numbers, 5-digit postal codes, districts within their province) and only accepts ASCII digits.
 - Not covered yet: stock levels, payment processing, order emails, admin status changes and guest order lookup.
 
+## Admin area
+
+Every account has a role: `customer` (the default), `staff` or `admin`. Registering never grants a role.
+
+| Role     | Can do                                         |
+| -------- | ---------------------------------------------- |
+| customer | shop, place orders, see their own orders       |
+| staff    | open the admin area and see the dashboard      |
+| admin    | everything above, plus users, roles, audit log |
+
+The role is checked by the API on every request, reading it from the database, so changing someone's role takes effect at once (and signs them out everywhere). The website only hides links; it is not what protects anything. Every `/admin` route carries a `role:staff` or `role:admin` tag, and a test walks the API's own schema to check that each route refuses guests (401), refuses people without the role (403) and refuses requests from untrusted origins.
+
+**The first admin is created from the command line, never from the website.** Whoever can run this already controls the server:
+
+```bash
+python -m app.admin_cli create-admin you@example.com --name "Your Name"   # asks for a password
+python -m app.admin_cli set-role someone@example.com staff
+```
+
+Changes made through the API have guard rails: you cannot change your own role, and the last admin cannot be demoted. (The command line can, because it is the way back in if something goes wrong.)
+
+Every admin change is written to the `audit_log` table in the same transaction as the change. A database trigger refuses to update or delete audit rows, so the record cannot be edited later, even by the application. Secrets (passwords, tokens, keys) are removed before anything is logged. Not built yet in the admin area: order management, product editing (products will be archived, never deleted) and image uploads.
+
 ## Chat assistant
 
 `POST /chat` takes `{ "messages": [{ "role": "user" | "assistant", "text": "..." }] }` and returns `{ "reply": { "text": "...", "productIds": [...] } }`.

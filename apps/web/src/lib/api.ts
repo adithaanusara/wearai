@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation';
 import type {
+  AdminUser,
+  AuditEntry,
   CheckoutOptions,
+  Dashboard,
   CollectionPage,
   Order,
   OrderRequest,
@@ -8,6 +11,7 @@ import type {
   ProductDetail,
   Quote,
   Review,
+  Role,
   User,
 } from '@/types/api';
 import type { CartItem } from '@/types/cart';
@@ -100,7 +104,7 @@ async function readError(response: Response): Promise<ApiError> {
 
 interface RequestOptions {
   query?: Record<string, QueryValue>;
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PATCH';
   body?: unknown;
   headers?: Record<string, string>;
 }
@@ -201,3 +205,26 @@ export const getMyOrders = (page = 1, headers?: AuthHeaders) =>
 /** Asks the shopping assistant. Only the conversation is sent: no prices, no personal data. */
 export const sendChat = (messages: ChatRequest['messages']) =>
   request<ChatResponse>('/chat', { method: 'POST', body: { messages } });
+
+// ---------- admin (each call is checked by the API; the website only chooses what to show) ----------
+
+export const getAdminDashboard = (headers?: AuthHeaders) =>
+  request<Dashboard>('/admin/dashboard', { headers });
+
+export const getAdminUsers = (
+  query: { search?: string; role?: string; page?: number },
+  headers?: AuthHeaders,
+) =>
+  request<Page<AdminUser>>('/admin/users', {
+    query: { ...query, page: query.page && query.page > 1 ? query.page : undefined },
+    headers,
+  });
+
+export const changeUserRole = (userId: number, role: Role) =>
+  request<AdminUser>(`/admin/users/${userId}/role`, { method: 'PATCH', body: { role } });
+
+export const getAuditLog = (page = 1, headers?: AuthHeaders) =>
+  request<Page<AuditEntry>>('/admin/audit-log', {
+    query: { page: page > 1 ? page : undefined },
+    headers,
+  });

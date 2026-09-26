@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import auth, chat, checkout, collections, health, orders, products, search
+from app.api import admin, auth, chat, checkout, collections, health, orders, products, search
 from app.config import settings
 
 API_PREFIX = "/api/v1"
@@ -46,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(checkout.router, prefix=API_PREFIX)
     app.include_router(orders.router, prefix=API_PREFIX)
     app.include_router(chat.router, prefix=API_PREFIX)
+    app.include_router(admin.router, prefix=API_PREFIX)
     app.include_router(products.router, prefix=API_PREFIX)
     app.include_router(collections.router, prefix=API_PREFIX)
     app.include_router(search.router, prefix=API_PREFIX)

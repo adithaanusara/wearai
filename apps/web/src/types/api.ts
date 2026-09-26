@@ -105,8 +105,32 @@ export interface OrderRequest {
   expectedTotal?: number;
 }
 
+export type Role = 'customer' | 'staff' | 'admin';
+
 export interface User {
   id: number;
   name: string;
   email: string;
+  role: Role;
+}
+
+/** A user as an admin sees them in the users list. */
+export interface AdminUser extends User {
+  createdAt: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  createdAt: string;
+  actorEmail: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  details: Record<string, unknown>;
+}
+
+export interface Dashboard {
+  ordersByStatus: Record<string, number>;
+  products: number;
+  customers: number;
 }

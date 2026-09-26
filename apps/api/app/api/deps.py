@@ -89,3 +89,29 @@ def cart_problem(error: InvalidCartError) -> HTTPException:
             }
         ],
     )
+
+
+ROLE_RANK = {"customer": 0, "staff": 1, "admin": 2}
+
+
+def require_role(minimum: str):
+    """A dependency that admits only a signed-in user with at least this role.
+
+    The role is read from the database on every request, never from the cookie, so a role change
+    takes effect immediately.
+    """
+
+    def dependency(user: Annotated[User | None, Depends(current_user)]) -> User:
+        if user is None:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        if ROLE_RANK.get(user.role, -1) < ROLE_RANK[minimum]:
+            raise HTTPException(status_code=403, detail="Not allowed")
+        return user
+
+    return dependency
+
+
+require_staff = require_role("staff")
+require_admin = require_role("admin")
+StaffDep = Annotated[User, Depends(require_staff)]
+AdminDep = Annotated[User, Depends(require_admin)]

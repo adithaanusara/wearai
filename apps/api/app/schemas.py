@@ -155,6 +155,7 @@ class UserOut(CamelModel):
     id: int
     name: str
     email: str
+    role: str
 
 
 class SessionOut(CamelModel):

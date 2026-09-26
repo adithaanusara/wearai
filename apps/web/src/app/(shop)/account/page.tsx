@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AccountOrders } from '@/components/account/AccountOrders';
 import { SignOutButton } from '@/components/account/SignOutButton';
 import { Pagination } from '@/components/collection/Pagination';
 import { Container } from '@/components/ui/Container';
+import { hasRole } from '@/lib/admin';
 import { ApiError, buildQuery, getMe, getMyOrders } from '@/lib/api';
 import { parsePage, type SearchParams } from '@/lib/collection';
 import { serverAuthHeaders } from '@/lib/server-session';
@@ -42,6 +44,14 @@ export default async function AccountPage({
 
       <div className="mt-8 max-w-2xl space-y-12">
         <p className="text-sm">Welcome back, {user.name}.</p>
+
+        {hasRole(user.role, 'staff') && (
+          <p className="text-sm">
+            <Link href="/admin" className="font-medium underline">
+              Open the admin area
+            </Link>
+          </p>
+        )}
 
         <section aria-labelledby="orders-title">
           <h2 id="orders-title" className={sectionTitle}>

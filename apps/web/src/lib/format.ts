@@ -21,3 +21,17 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
 export function formatDate(isoDate: string): string {
   return dateFormat.format(new Date(isoDate));
 }
+
+const dateTimeFormat = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'UTC',
+});
+
+/** Formats an ISO timestamp as "12 Sept 2026, 14:05", always in UTC so server and browser agree. */
+export function formatDateTime(isoDateTime: string): string {
+  return `${dateTimeFormat.format(new Date(isoDateTime))} UTC`;
+}

@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { siteConfig } from '@/config/site';
-import { ChatWidget } from '@/components/chat/ChatWidget';
 import { QueryProvider } from '@/components/providers';
-import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CartProvider } from '@/components/cart/CartProvider';
 import { SkipLink } from '@/components/layout/SkipLink';
+import { StoreOverlays } from '@/components/layout/StoreOverlays';
 import './globals.css';
 
 const inter = Inter({
@@ -26,8 +25,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           <CartProvider>
             <SkipLink />
             {children}
-            <CartDrawer />
-            <ChatWidget />
+            <StoreOverlays />
           </CartProvider>
         </QueryProvider>
       </body>
