@@ -33,6 +33,10 @@ class Filters:
     sort: SortKey = SortKey.FEATURED
 
 
+# Archived products stay in the database for old orders but are invisible to shoppers.
+ACTIVE = Product.archived_at.is_(None)
+
+
 def _with_children() -> list:
     """Loads images, sizes and details in a few queries instead of one per product."""
     return [
@@ -43,7 +47,7 @@ def _with_children() -> list:
 
 
 def _conditions(filters: Filters) -> list[ColumnElement[bool]]:
-    conditions: list[ColumnElement[bool]] = []
+    conditions: list[ColumnElement[bool]] = [ACTIVE]
     if filters.sizes:
         conditions.append(Product.sizes.any(ProductSize.label.in_(filters.sizes)))
     if filters.colours:
@@ -101,7 +105,7 @@ def list_products(
 
 def filter_options(db: Session, scope: ColumnElement[bool] | None = None) -> dict:
     """The sizes, colours and price range on offer, based on everything in the scope."""
-    query = select(Product).options(selectinload(Product.sizes))
+    query = select(Product).options(selectinload(Product.sizes)).where(ACTIVE)
     if scope is not None:
         query = query.where(scope)
     products = list(db.scalars(query))
@@ -120,7 +124,7 @@ def filter_options(db: Session, scope: ColumnElement[bool] | None = None) -> dic
 
 def get_product(db: Session, slug: str) -> Product | None:
     return db.scalars(
-        select(Product).options(*_with_children()).where(Product.slug == slug)
+        select(Product).options(*_with_children()).where(Product.slug == slug, ACTIVE)
     ).one_or_none()
 
 
@@ -129,7 +133,7 @@ def get_colourways(db: Session, product: Product) -> list[Product]:
     return list(
         db.scalars(
             select(Product)
-            .where(Product.style_id == product.style_id)
+            .where(Product.style_id == product.style_id, ACTIVE)
             .order_by(Product.position, Product.id)
         )
     )
@@ -140,7 +144,7 @@ def get_related(db: Session, product: Product, limit: int) -> list[Product]:
     query = (
         select(Product)
         .options(*_with_children())
-        .where(Product.category == product.category, Product.style_id != product.style_id)
+        .where(Product.category == product.category, Product.style_id != product.style_id, ACTIVE)
         .order_by(Product.position, Product.id)
         .limit(limit)
     )
@@ -180,7 +184,10 @@ def search_products(db: Session, query: str) -> list[Product]:
         return []
 
     catalogue = db.scalars(
-        select(Product).options(*_with_children()).order_by(Product.position, Product.id)
+        select(Product)
+        .options(*_with_children())
+        .where(ACTIVE)
+        .order_by(Product.position, Product.id)
     )
     scored: list[tuple[int, int, Product]] = []
     for index, product in enumerate(catalogue):

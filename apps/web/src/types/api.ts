@@ -156,3 +156,20 @@ export interface AdminOrder extends Order {
   history: StatusChange[];
   allowedNext: string[];
 }
+
+export interface AdminProduct {
+  id: string;
+  slug: string;
+  name: string;
+  colour: string;
+  gender: string;
+  category: string;
+  price: number;
+  compareAtPrice: number | null;
+  description: string;
+  image: string | null;
+  sizes: string[];
+  archived: boolean;
+  /** The version of the product. An edit sends it back, so a stale screen is refused. */
+  updatedAt: string;
+}

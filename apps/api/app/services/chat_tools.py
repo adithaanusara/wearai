@@ -156,6 +156,7 @@ def _search(db: Session, args: SearchInput, seen: dict[str, Product]) -> str:
                     selectinload(Product.images),
                     selectinload(Product.details),
                 )
+                .where(catalogue.ACTIVE)
                 .order_by(Product.position, Product.id)
             )
         )
@@ -185,7 +186,8 @@ def _search(db: Session, args: SearchInput, seen: dict[str, Product]) -> str:
 
 def _get_product(db: Session, args: GetProductInput, seen: dict[str, Product]) -> ToolResult:
     product = db.get(Product, args.product) or catalogue.get_product(db, args.product)
-    if product is None:
+    # An archived product is gone as far as the assistant (and so the shopper) is concerned.
+    if product is None or product.archived_at is not None:
         return ToolResult("No product with that id or slug.", is_error=True)
 
     seen[product.id] = product

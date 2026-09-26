@@ -79,6 +79,8 @@ def price_items(db: Session, items: list[OrderItemIn]) -> list[PricedLine]:
         product = products.get(item.product_id)
         if product is None:
             raise InvalidCartError(index, "productId", "This product does not exist.")
+        if product.archived_at is not None:
+            raise InvalidCartError(index, "productId", "This product is no longer available.")
         if item.size not in {size.label for size in product.sizes}:
             raise InvalidCartError(index, "size", "This size is not available for the product.")
         lines.append(PricedLine(product=product, size=item.size, quantity=item.quantity))

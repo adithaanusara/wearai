@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type {
   AdminOrder,
+  AdminProduct,
   AdminUser,
   AuditEntry,
   CheckoutOptions,
@@ -248,4 +249,36 @@ export const changeOrderStatus = (reference: string, expectedStatus: string, sta
   request<AdminOrder>(`/admin/orders/${segment(reference)}/status`, {
     method: 'PATCH',
     body: { expectedStatus, status },
+  });
+
+export const getAdminProducts = (
+  query: { search?: string; archived?: string; page?: number },
+  headers?: AuthHeaders,
+) =>
+  request<Page<AdminProduct>>('/admin/products', {
+    query: { ...query, page: query.page && query.page > 1 ? query.page : undefined },
+    headers,
+  });
+
+export const getAdminProduct = (id: string, headers?: AuthHeaders) =>
+  request<AdminProduct>(`/admin/products/${segment(id)}`, { headers });
+
+export interface ProductEdit {
+  name: string;
+  price: number;
+  compareAtPrice: number | null;
+  description: string;
+}
+
+/** Saves an edit. `updatedAt` is the version the screen showed; a newer one on the server is a 409. */
+export const editProduct = (id: string, updatedAt: string, edit: ProductEdit) =>
+  request<AdminProduct>(`/admin/products/${segment(id)}`, {
+    method: 'PATCH',
+    body: { updatedAt, ...edit },
+  });
+
+export const setProductArchived = (id: string, updatedAt: string, archive: boolean) =>
+  request<AdminProduct>(`/admin/products/${segment(id)}/${archive ? 'archive' : 'restore'}`, {
+    method: 'POST',
+    body: { updatedAt },
   });
