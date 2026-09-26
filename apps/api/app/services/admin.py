@@ -13,13 +13,23 @@ ROLES = ("customer", "staff", "admin")
 class AdminError(Exception):
     """Something an admin asked for that is not allowed. The message is safe to show them."""
 
-    def __init__(self, status_code: int, message: str) -> None:
+    def __init__(
+        self, status_code: int, message: str, code: str | None = None, **details: object
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.message = message
+        self.code = code
+        self.details = details
+
+    def as_detail(self) -> str | dict:
+        """The `detail` for the response: plain text, or {code, message, ...facts} when coded."""
+        if self.code is None:
+            return self.message
+        return {"code": self.code, "message": self.message, **self.details}
 
 
-def _like(text: str) -> str:
+def like_pattern(text: str) -> str:
     """Escapes % and _ so a search for them matches only themselves."""
     return "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
@@ -29,7 +39,7 @@ def list_users(
 ) -> tuple[list[User], int]:
     conditions = []
     if search:
-        pattern = _like(search.strip())
+        pattern = like_pattern(search.strip())
         conditions.append(
             User.email.ilike(pattern, escape="\\") | User.name.ilike(pattern, escape="\\")
         )

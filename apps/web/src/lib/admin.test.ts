@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/lib/api';
-import { actionLabel, describeChange, hasRole, roleChangeError, roleLabel } from '@/lib/admin';
+import {
+  actionLabel,
+  describeChange,
+  hasRole,
+  needsConfirmation,
+  roleChangeError,
+  roleLabel,
+  statusActionLabel,
+  statusChangeError,
+} from '@/lib/admin';
 import { formatDateTime } from '@/lib/format';
 
 describe('hasRole', () => {
@@ -51,5 +60,28 @@ describe('roleChangeError', () => {
 describe('formatDateTime', () => {
   it('always uses UTC', () => {
     expect(formatDateTime('2026-09-12T14:05:00Z')).toBe('12 Sept 2026, 14:05 UTC');
+  });
+});
+
+describe('order status actions', () => {
+  it('words each move as an action', () => {
+    expect(statusActionLabel('confirmed')).toBe('Confirm order');
+    expect(statusActionLabel('shipped')).toBe('Mark as shipped');
+    expect(statusActionLabel('delivered')).toBe('Mark as delivered');
+    expect(statusActionLabel('cancelled')).toBe('Cancel order');
+  });
+
+  it('asks for confirmation only when cancelling', () => {
+    expect(needsConfirmation('cancelled')).toBe(true);
+    expect(needsConfirmation('shipped')).toBe(false);
+  });
+
+  it('shows the reason from the API, or a friendly fallback', () => {
+    expect(statusChangeError(new ApiError(409, 'This order was changed by someone else.'))).toMatch(
+      /someone else/,
+    );
+    expect(statusChangeError(new ApiError(500, 'Request failed (500)'))).toMatch(
+      /could not change/,
+    );
   });
 });

@@ -134,3 +134,25 @@ export interface Dashboard {
   products: number;
   customers: number;
 }
+
+export interface OrderSummary {
+  reference: string;
+  status: string;
+  email: string;
+  fullName: string;
+  total: number;
+  createdAt: string;
+}
+
+export interface StatusChange {
+  fromStatus: string;
+  toStatus: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+/** An order as staff see it: the customer's order plus its history and the moves allowed now. */
+export interface AdminOrder extends Order {
+  history: StatusChange[];
+  allowedNext: string[];
+}

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { getAdminDashboard } from '@/lib/api';
 import { statusLabel } from '@/lib/orders';
 import { requireRole, serverAuthHeaders } from '@/lib/server-session';
@@ -24,9 +25,11 @@ export default async function AdminDashboardPage() {
         </h2>
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {Object.entries(dashboard.ordersByStatus).map(([status, count]) => (
-            <div key={status} className="border-border rounded-sm border p-4">
-              <dt className="text-muted text-xs">{statusLabel(status)}</dt>
-              <dd className="mt-1 text-2xl font-bold">{count}</dd>
+            <div key={status} className="border-border rounded-sm border">
+              <Link href={`/admin/orders?status=${status}`} className="hover:bg-surface block p-4">
+                <dt className="text-muted text-xs">{statusLabel(status)}</dt>
+                <dd className="mt-1 text-2xl font-bold">{count}</dd>
+              </Link>
             </div>
           ))}
         </dl>

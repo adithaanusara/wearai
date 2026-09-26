@@ -56,12 +56,13 @@ def admin_routes() -> list[tuple[str, str, str]]:
         for method, operation in operations.items():
             roles = [tag for tag in operation["tags"] if tag.startswith("role:")]
             assert len(roles) == 1, f"{method} {path} must declare exactly one role tag"
-            found.append((method.upper(), path.replace("{user_id}", "1"), roles[0][5:]))
+            concrete = path.replace("{user_id}", "1").replace("{reference}", "WA-NOPE")
+            found.append((method.upper(), concrete, roles[0][5:]))
     return found
 
 
 def call(browser: TestClient, method: str, path: str):
-    body = {"role": "staff"} if method == "PATCH" else None
+    body = {"role": "staff"} if method == "PATCH" else None  # right or wrong, auth comes first
     return browser.request(method, path, json=body, headers={"Origin": WEB_ORIGIN})
 
 
@@ -69,7 +70,7 @@ def call(browser: TestClient, method: str, path: str):
 
 
 def test_there_are_admin_routes_to_check() -> None:
-    assert len(admin_routes()) >= 5
+    assert len(admin_routes()) >= 8
 
 
 @pytest.mark.parametrize(("method", "path", "least"), admin_routes())
@@ -78,12 +79,13 @@ def test_every_admin_route_enforces_its_role(
 ) -> None:
     assert call(people["guest"], method, path).status_code == 401
     assert call(people["customer"], method, path).status_code == 403
+    # Allowed roles get past the role check; the request itself may still be a 404 or 422 here.
     staff = call(people["staff"], method, path).status_code
     if least == "admin":
         assert staff == 403
     else:
-        assert staff == 200
-    assert call(people["admin"], method, path).status_code != 403
+        assert staff not in (401, 403)
+    assert call(people["admin"], method, path).status_code not in (401, 403)
 
 
 def test_every_admin_route_rejects_untrusted_origins(people: dict[str, TestClient]) -> None:

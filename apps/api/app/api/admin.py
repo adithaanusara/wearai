@@ -18,9 +18,21 @@ from app.api.deps import (
     require_staff,
 )
 from app.db import get_db
+from app.models import Order
 from app.schemas import Page, UserOut
-from app.schemas_admin import AdminUserOut, AuditEntryOut, DashboardOut, RoleChangeIn
+from app.schemas_admin import (
+    AdminOrderOut,
+    AdminUserOut,
+    AuditEntryOut,
+    DashboardOut,
+    OrderSummaryOut,
+    RoleChangeIn,
+    StatusChangeIn,
+    StatusHistoryOut,
+)
+from app.schemas_orders import OrderOut
 from app.services import admin as admin_service
+from app.services import admin_orders
 
 # The origin check comes first and covers every method, so a forged request from another site
 # cannot change anything here.
@@ -40,6 +52,80 @@ def admin_me(user: StaffDep) -> UserOut:
 @staff_routes.get("/dashboard", response_model=DashboardOut)
 def get_dashboard(_: StaffDep, db: DbDep) -> DashboardOut:
     return DashboardOut(**admin_service.dashboard(db))
+
+
+def _order_detail(db: Session, order: Order) -> AdminOrderOut:
+    history = [
+        StatusHistoryOut(
+            from_status=h.from_status,
+            to_status=h.to_status,
+            actor_email=h.actor_email,
+            created_at=h.created_at,
+        )
+        for h in admin_orders.history_for(db, order)
+    ]
+    return AdminOrderOut(
+        **dict(OrderOut.from_order(order)),
+        history=history,
+        allowed_next=admin_orders.allowed_next(order.status),
+    )
+
+
+@staff_routes.get("/orders", response_model=Page[OrderSummaryOut])
+def list_orders(
+    _: StaffDep,
+    db: DbDep,
+    pagination: PaginationDep,
+    status: Annotated[
+        str | None, Query(pattern="^(pending|confirmed|shipped|delivered|cancelled)$")
+    ] = None,
+    search: Annotated[str | None, Query(max_length=100)] = None,
+) -> Page[OrderSummaryOut]:
+    orders, total = admin_orders.list_orders(
+        db, status=status, search=search, page=pagination.page, page_size=pagination.page_size
+    )
+    return Page(
+        items=[
+            OrderSummaryOut(
+                reference=o.reference,
+                status=o.status,
+                email=o.email,
+                full_name=o.full_name,
+                total=o.total,
+                created_at=o.created_at,
+            )
+            for o in orders
+        ],
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
+
+
+@staff_routes.get("/orders/{reference}", response_model=AdminOrderOut)
+def get_order(reference: str, _: StaffDep, db: DbDep) -> AdminOrderOut:
+    order = admin_orders.get_order(db, reference)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    return _order_detail(db, order)
+
+
+@staff_routes.patch("/orders/{reference}/status", response_model=AdminOrderOut)
+def change_order_status(
+    reference: str, body: StatusChangeIn, actor: StaffDep, db: DbDep
+) -> AdminOrderOut:
+    try:
+        order = admin_orders.change_status(
+            db,
+            actor=actor,
+            reference=reference,
+            expected_status=body.expected_status,
+            new_status=body.status,
+        )
+    except admin_service.AdminError as error:
+        db.rollback()
+        raise HTTPException(status_code=error.status_code, detail=error.as_detail()) from error
+    return _order_detail(db, order)
 
 
 @admin_routes.get("/users", response_model=Page[AdminUserOut])
@@ -76,7 +162,7 @@ def change_user_role(user_id: int, body: RoleChangeIn, actor: AdminDep, db: DbDe
         user = admin_service.change_role(db, actor=actor, user_id=user_id, new_role=body.role)
     except admin_service.AdminError as error:
         db.rollback()
-        raise HTTPException(status_code=error.status_code, detail=error.message) from error
+        raise HTTPException(status_code=error.status_code, detail=error.as_detail()) from error
     return AdminUserOut(
         id=user.id, name=user.name, email=user.email, role=user.role, created_at=user.created_at
     )
