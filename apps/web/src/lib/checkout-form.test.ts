@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { firstInvalidField, mapProblems } from '@/lib/checkout-form';
+import { ApiError } from '@/lib/api';
+import {
+  firstInvalidField,
+  mapProblems,
+  priceChangedMessage,
+  readPriceChange,
+} from '@/lib/checkout-form';
 
 const problem = (loc: (string | number)[], msg: string) => ({ loc, msg });
 
@@ -58,5 +64,39 @@ describe('firstInvalidField', () => {
 
   it('returns undefined when there are no errors', () => {
     expect(firstInvalidField({})).toBeUndefined();
+  });
+});
+
+describe('readPriceChange', () => {
+  const change = (total: unknown) =>
+    new ApiError(409, 'changed', [], { code: 'price_changed', details: { total } });
+
+  it('returns the new total for a price change', () => {
+    expect(readPriceChange(change(8450))).toBe(8450);
+    expect(readPriceChange(change(0))).toBe(0);
+  });
+
+  it('is null for every other kind of failure', () => {
+    expect(
+      readPriceChange(new ApiError(409, 'x', [], { code: 'idempotency_conflict' })),
+    ).toBeNull();
+    expect(readPriceChange(new ApiError(422, 'x', [], { code: 'price_changed' }))).toBeNull();
+    expect(readPriceChange(new ApiError(503, 'down'))).toBeNull();
+    expect(readPriceChange(new Error('boom'))).toBeNull();
+    expect(readPriceChange(null)).toBeNull();
+  });
+
+  it('is null when the API did not say what the new total is', () => {
+    expect(readPriceChange(change(undefined))).toBeNull();
+    expect(readPriceChange(change('8450'))).toBeNull();
+  });
+});
+
+describe('priceChangedMessage', () => {
+  it('shows the new total in LKR and says nothing was placed', () => {
+    const message = priceChangedMessage(8450);
+
+    expect(message).toContain('LKR 8,450.00');
+    expect(message).toMatch(/place the order again/);
   });
 });

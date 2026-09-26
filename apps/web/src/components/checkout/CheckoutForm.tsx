@@ -15,6 +15,8 @@ import {
   firstInvalidField,
   initialValues,
   mapProblems,
+  priceChangedMessage,
+  readPriceChange,
   type CheckoutErrors,
   type CheckoutValues,
 } from '@/lib/checkout-form';
@@ -88,6 +90,13 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
       else if (other) setBanner({ text: other });
       return;
     }
+    const newTotal = readPriceChange(error);
+    if (newTotal !== null) {
+      // Nothing was placed. Show what changed and refresh the summary; the shopper decides.
+      setBanner({ text: priceChangedMessage(newTotal) });
+      void quote.refetch();
+      return;
+    }
     if (error instanceof ApiError && error.status === 409) {
       // The key was used for different details, so the next attempt needs a fresh one.
       clearCheckoutKey();
@@ -109,7 +118,10 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
     setErrors({});
 
     try {
-      const order = await placeOrder({ ...shown, items }, getCheckoutKey());
+      const order = await placeOrder(
+        { ...shown, items, expectedTotal: quote.data?.total },
+        getCheckoutKey(),
+      );
       // The cart is cleared only now that the server has confirmed the order.
       saveOrder(order);
       clearCheckoutKey();

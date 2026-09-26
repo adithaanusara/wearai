@@ -31,15 +31,15 @@ Check it works: <http://localhost:8000/api/v1/health> returns `{"status": "ok", 
 
 All under `/api/v1`. JSON uses camelCase, matching the website's types. Interactive docs are at `/docs`.
 
-| Endpoint                       | What it returns                                                                                                                                       |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /health`                  | API and database status                                                                                                                               |
+| Endpoint                       | What it returns                                                                                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`                  | API and database status                                                                                                                                                                                                         |
 | `GET /products`                | Paginated products. Filters: `gender`, `category`, `size`, `colour` (repeatable), `min`, `max`. Sort: `featured`, `newest`, `price-asc`, `price-desc`. `id` (repeatable, up to 50) looks up specific products, as the cart does |
-| `GET /products/{slug}`         | A product with its colourways and rating                                                                                                              |
-| `GET /products/{slug}/reviews` | Reviews for the product's style                                                                                                                       |
-| `GET /products/{slug}/related` | Other products in the same category (`limit` up to 12)                                                                                                |
-| `GET /collections/{slug}`      | A collection: title, filter options and its filtered, sorted products                                                                                 |
-| `GET /search?q=`               | Ranked search results                                                                                                                                 |
+| `GET /products/{slug}`         | A product with its colourways and rating                                                                                                                                                                                        |
+| `GET /products/{slug}/reviews` | Reviews for the product's style                                                                                                                                                                                                 |
+| `GET /products/{slug}/related` | Other products in the same category (`limit` up to 12)                                                                                                                                                                          |
+| `GET /collections/{slug}`      | A collection: title, filter options and its filtered, sorted products                                                                                                                                                           |
+| `GET /search?q=`               | Ranked search results                                                                                                                                                                                                           |
 
 Pagination uses `page` and `pageSize` (default 24, at most 100). Unknown slugs return 404, and invalid query values return 422 instead of being ignored.
 
@@ -56,8 +56,9 @@ Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
 ## Orders
 
 - **The server decides every price.** A request says which products, sizes and quantities; prices, shipping and the total come from the database. Unknown fields, including `price`, `total` and `shipping`, are rejected with 422.
+- Send `expectedTotal` (the total the shopper was shown, in whole LKR) and the API refuses an order whose real total is different: it creates nothing and answers 409 with `{ "code": "price_changed", "total": <current total> }`. It is only compared, never used as a price, and it is optional. A retry of an order that already exists is not affected.
 - Each order line stores the product's name, colour, size and unit price at purchase time, so history never changes when the catalogue does.
-- Send an `Idempotency-Key` header (8 to 64 letters, digits, `-` or `_`) so a double click or retry returns the original order instead of creating a second one. Reusing a key with different data returns 409.
+- Send an `Idempotency-Key` header (8 to 64 letters, digits, `-` or `_`) so a double click or retry returns the original order instead of creating a second one. Reusing a key with different data returns 409 with code `idempotency_conflict`.
 - Reading someone else's order returns the same 404 as a missing one, so references cannot be probed.
 - Validation matches the website (Sri Lankan mobile numbers, 5-digit postal codes, districts within their province) and only accepts ASCII digits.
 - Not covered yet: stock levels, payment processing, order emails, admin status changes and guest order lookup.

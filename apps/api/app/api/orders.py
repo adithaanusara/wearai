@@ -30,9 +30,23 @@ def create_order(
         order, created = orders.create_order(db, body, user, idempotency_key)
     except orders.InvalidCartError as error:
         raise cart_problem(error) from error
+    except orders.PriceChangedError as error:
+        # The current total is included so the website can show it and let the shopper decide.
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "price_changed",
+                "message": "The price of your order has changed. Please review the new total.",
+                "total": error.total,
+            },
+        ) from error
     except orders.IdempotencyConflictError as error:
         raise HTTPException(
-            status_code=409, detail="This Idempotency-Key was already used for a different order"
+            status_code=409,
+            detail={
+                "code": "idempotency_conflict",
+                "message": "This Idempotency-Key was already used for a different order",
+            },
         ) from error
 
     if not created:
