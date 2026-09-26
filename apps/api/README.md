@@ -63,6 +63,19 @@ Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
 - Validation matches the website (Sri Lankan mobile numbers, 5-digit postal codes, districts within their province) and only accepts ASCII digits.
 - Not covered yet: stock levels, payment processing, order emails, admin status changes and guest order lookup.
 
+## Chat assistant
+
+`POST /chat` takes `{ "messages": [{ "role": "user" | "assistant", "text": "..." }] }` and returns `{ "reply": { "text": "...", "productIds": [...] } }`.
+
+- The Anthropic API key is read from `ANTHROPIC_API_KEY` on the server and never reaches a browser. Put it in `.env`, which git ignores, and never in `.env.example`, which is committed. The Anthropic account also needs credits (Plans & Billing in the Anthropic console); with none, every request fails and the log says the credit balance is too low. With no key, or `CHAT_ENABLED=false`, the endpoint answers 503 and the website shows that the assistant is unavailable.
+- The assistant has three read-only tools: search products, get one product, and store information (delivery, payment, sizing, returns, contact). It has no tools for orders or accounts, so it cannot see or change personal data, even if a message tries to trick it.
+- Product cards only ever show products that a tool returned in that conversation. An id the model invents is dropped.
+- The store does not track stock, so the assistant says which sizes are offered and never claims something is in stock.
+- Limits: 20 messages of up to 1,000 characters (6,000 in total) per conversation, at most 5 tool rounds per question, and `CHAT_RATE_LIMIT_REQUESTS` messages per visitor per `CHAT_RATE_LIMIT_WINDOW_SECONDS` (default 20 per 10 minutes). Visitors are told apart by a salted hash of their address (or by account when signed in), and a store-wide `CHAT_DAILY_TOKEN_CAP` stops the assistant for the day. All counts live in the `chat_usage` table, which never stores message text. Set `CHAT_HASH_SALT` to a long random value in production, and run behind a proxy that passes the real client address on.
+- The model is `CHAT_MODEL` (default `claude-opus-5`, with adaptive thinking at low effort and Anthropic's server-side refusal fallback). For Haiku 4.5, also set `CHAT_ADAPTIVE_THINKING=false`, `CHAT_EFFORT=none` and `CHAT_REFUSAL_FALLBACKS=false`.
+- Tests use a scripted fake model, so they cost nothing. `tests/test_chat_live.py` calls the real API (a few cents) and only runs with `RUN_LIVE_CHAT_TESTS=1` and a key.
+- Returns terms and contact details in `app/store_info.py` are placeholders, like on the website. Replace them before launch.
+
 ## Tests and linting
 
 ```bash
