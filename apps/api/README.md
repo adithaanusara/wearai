@@ -61,7 +61,7 @@ Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
 - Send an `Idempotency-Key` header (8 to 64 letters, digits, `-` or `_`) so a double click or retry returns the original order instead of creating a second one. Reusing a key with different data returns 409 with code `idempotency_conflict`.
 - Reading someone else's order returns the same 404 as a missing one, so references cannot be probed.
 - Validation matches the website (Sri Lankan mobile numbers, 5-digit postal codes, districts within their province) and only accepts ASCII digits.
-- Not covered yet: stock levels, payment processing, order emails, admin status changes and guest order lookup.
+- Not covered yet: stock levels, payment processing, order emails and guest order lookup. Staff manage orders in the admin area (see below).
 
 ## Admin area
 
@@ -84,7 +84,15 @@ python -m app.admin_cli set-role someone@example.com staff
 
 Changes made through the API have guard rails: you cannot change your own role, and the last admin cannot be demoted. (The command line can, because it is the way back in if something goes wrong.)
 
-Every admin change is written to the `audit_log` table in the same transaction as the change. A database trigger refuses to update or delete audit rows, so the record cannot be edited later, even by the application. Secrets (passwords, tokens, keys) are removed before anything is logged. Not built yet in the admin area: order management, product editing (products will be archived, never deleted) and image uploads.
+Every admin change is written to the `audit_log` table in the same transaction as the change. A database trigger refuses to update or delete audit rows, so the record cannot be edited later, even by the application. Secrets (passwords, tokens, keys) are removed before anything is logged. The trigger stops row edits and deletes, not `TRUNCATE` by a database owner, so in production the API should connect with a database role that has no `TRUNCATE`, `DELETE` or `UPDATE` privilege on `audit_log`.
+
+### Order management
+
+Staff and admins can search orders (reference, email or name), filter by status, and move an order along. Only these moves exist: pending to confirmed or cancelled, confirmed to shipped or cancelled, shipped to delivered. Delivered and cancelled are final, and a shipped order cannot be cancelled. A status change never touches lines or prices.
+
+Each change states the status the screen showed (`expectedStatus`). The order row is locked while it is checked, so if two people act at once the second gets 409 `stale_status` instead of silently overwriting the first. Every change is stored in `order_status_history` (from, to, who, when) and in the audit log, in the same transaction.
+
+Not built yet in the admin area: product editing (products will be archived, never deleted) and image uploads.
 
 ## Chat assistant
 

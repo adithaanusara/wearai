@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import type {
+  AdminOrder,
   AdminUser,
   AuditEntry,
   CheckoutOptions,
@@ -7,6 +8,7 @@ import type {
   CollectionPage,
   Order,
   OrderRequest,
+  OrderSummary,
   Page,
   ProductDetail,
   Quote,
@@ -227,4 +229,23 @@ export const getAuditLog = (page = 1, headers?: AuthHeaders) =>
   request<Page<AuditEntry>>('/admin/audit-log', {
     query: { page: page > 1 ? page : undefined },
     headers,
+  });
+
+export const getAdminOrders = (
+  query: { status?: string; search?: string; page?: number },
+  headers?: AuthHeaders,
+) =>
+  request<Page<OrderSummary>>('/admin/orders', {
+    query: { ...query, page: query.page && query.page > 1 ? query.page : undefined },
+    headers,
+  });
+
+export const getAdminOrder = (reference: string, headers?: AuthHeaders) =>
+  request<AdminOrder>(`/admin/orders/${segment(reference)}`, { headers });
+
+/** Moves an order on. `expectedStatus` is what the screen showed, so a stale screen is refused. */
+export const changeOrderStatus = (reference: string, expectedStatus: string, status: string) =>
+  request<AdminOrder>(`/admin/orders/${segment(reference)}/status`, {
+    method: 'PATCH',
+    body: { expectedStatus, status },
   });

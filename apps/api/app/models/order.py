@@ -79,3 +79,20 @@ class OrderItem(Base):
     quantity: Mapped[int] = mapped_column(SmallInteger)
     line_total: Mapped[int] = mapped_column(Integer)
     position: Mapped[int] = mapped_column(SmallInteger)
+
+
+class OrderStatusHistory(Base):
+    """One status change of an order: what it was, what it became, who did it and when."""
+
+    __tablename__ = "order_status_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    from_status: Mapped[str] = mapped_column(String(20))
+    to_status: Mapped[str] = mapped_column(String(20))
+    # Kept as text too, so the record still says who acted if the account is later deleted.
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    actor_email: Mapped[str] = mapped_column(String(254))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )

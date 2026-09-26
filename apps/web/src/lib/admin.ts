@@ -36,3 +36,32 @@ export function roleChangeError(error: unknown): string {
     ? message
     : 'We could not change the role. Please try again.';
 }
+
+export const orderStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+
+/** The button text for moving an order to a status. */
+export function statusActionLabel(status: string): string {
+  switch (status) {
+    case 'confirmed':
+      return 'Confirm order';
+    case 'shipped':
+      return 'Mark as shipped';
+    case 'delivered':
+      return 'Mark as delivered';
+    case 'cancelled':
+      return 'Cancel order';
+    default:
+      return `Move to ${status}`;
+  }
+}
+
+/** Cancelling cannot be undone, so it asks once more. */
+export const needsConfirmation = (status: string): boolean => status === 'cancelled';
+
+/** The message to show when a status change fails. Stale screens are told to reload. */
+export function statusChangeError(error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  return message && !message.startsWith('Request failed')
+    ? message
+    : 'We could not change the status. Please try again.';
+}
