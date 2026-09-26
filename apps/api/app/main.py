@@ -14,6 +14,8 @@ def _friendly_message(item: dict) -> str:
     message = item["msg"].removeprefix("Value error, ")
     if item["type"] == "missing":
         return "This field is required."
+    if item["type"] == "string_too_short" and item.get("ctx", {}).get("min_length") == 1:
+        return "This field is required."
     if message.startswith("value is not a valid email address"):
         return "Enter a valid email address."
     return message

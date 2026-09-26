@@ -208,6 +208,13 @@ def test_an_unknown_email_still_costs_a_password_verification(
     assert calls == [PASSWORD]  # so a missing account cannot be spotted by timing
 
 
+def test_an_empty_login_password_gets_a_readable_message(client: TestClient) -> None:
+    problem = login(client, password="").json()["detail"][0]
+
+    assert problem["loc"] == ["body", "password"]
+    assert problem["msg"] == "This field is required."
+
+
 def test_login_rejects_bad_input(client: TestClient) -> None:
     assert login(client, email="not-an-email").status_code == 422
     assert login(client, password="").status_code == 422
@@ -288,6 +295,50 @@ def test_auth_responses_are_not_cacheable(client: TestClient) -> None:
 
     assert registered.headers["cache-control"] == "no-store"
     assert me.headers["cache-control"] == "no-store"
+
+
+# ---------- session (the website's "is anyone signed in?" question) ----------
+
+
+def test_a_visitor_gets_a_normal_answer_with_no_user(client: TestClient) -> None:
+    response = client.get("/api/v1/auth/session")
+
+    assert response.status_code == 200
+    assert response.json() == {"user": None}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_a_signed_in_visitor_gets_their_user(client: TestClient) -> None:
+    register(client)
+
+    body = client.get("/api/v1/auth/session").json()
+
+    assert body["user"] == {"id": body["user"]["id"], "name": "Nimali Perera", "email": EMAIL}
+    assert "password" not in str(body).lower()
+
+
+@pytest.mark.parametrize("cookie", ["garbage", "a" * 500, "' OR 1=1 --"])
+def test_a_forged_cookie_looks_like_a_visitor(client: TestClient, cookie: str) -> None:
+    forged = TestClient(app)
+    forged.cookies.set(settings.session_cookie_name, cookie)
+
+    assert forged.get("/api/v1/auth/session").json() == {"user": None}
+
+
+def test_an_expired_session_looks_like_a_visitor(client: TestClient, db: Session) -> None:
+    register(client)
+    db.execute(update(UserSession).values(expires_at=datetime.now(UTC) - timedelta(minutes=1)))
+    db.commit()
+
+    assert client.get("/api/v1/auth/session").json() == {"user": None}
+    assert sessions(db) == []
+
+
+def test_after_logout_the_session_is_empty(client: TestClient) -> None:
+    register(client)
+    client.post("/api/v1/auth/logout")
+
+    assert client.get("/api/v1/auth/session").json() == {"user": None}
 
 
 # ---------- logout ----------

@@ -155,3 +155,9 @@ class UserOut(CamelModel):
     id: int
     name: str
     email: str
+
+
+class SessionOut(CamelModel):
+    """Who is signed in. A visitor has no user, which is a normal answer, not an error."""
+
+    user: UserOut | None

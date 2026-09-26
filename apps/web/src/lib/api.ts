@@ -8,6 +8,7 @@ import type {
   ProductDetail,
   Quote,
   Review,
+  User,
 } from '@/types/api';
 import type { CartItem } from '@/types/cart';
 import type { Product } from '@/types/product';
@@ -103,6 +104,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new ApiError(503, 'The store service is unavailable.');
   }
   if (!response.ok) throw await readError(response);
+  // A 204 (such as after logging out) has no body to read.
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
@@ -151,3 +154,26 @@ export const placeOrder = (order: OrderRequest, idempotencyKey: string) =>
     body: order,
     headers: { 'Idempotency-Key': idempotencyKey },
   });
+
+type AuthHeaders = Record<string, string>;
+
+/**
+ * The signed-in user, or null when nobody is. This asks /auth/session, which answers 200 either way,
+ * so a visitor does not cause an error in the browser console on every page. The session cookie
+ * travels with browser requests on its own; a server component has to pass it on through `headers`.
+ */
+export async function getMe(headers?: AuthHeaders): Promise<User | null> {
+  const { user } = await request<{ user: User | null }>('/auth/session', { headers });
+  return user;
+}
+
+export const login = (email: string, password: string) =>
+  request<User>('/auth/login', { method: 'POST', body: { email, password } });
+
+export const register = (name: string, email: string, password: string) =>
+  request<User>('/auth/register', { method: 'POST', body: { name, email, password } });
+
+export const logout = () => request<void>('/auth/logout', { method: 'POST' });
+
+export const getMyOrders = (page = 1, headers?: AuthHeaders) =>
+  request<Page<Order>>('/orders', { query: { page: page > 1 ? page : undefined }, headers });

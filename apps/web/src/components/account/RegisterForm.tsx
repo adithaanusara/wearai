@@ -1,55 +1,87 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
 import { PasswordField } from '@/components/account/PasswordField';
-import { useSession } from '@/components/account/SessionProvider';
+import { SESSION_QUERY_KEY } from '@/components/account/useSession';
 import { Field } from '@/components/ui/Field';
-import {
-  MIN_PASSWORD_LENGTH,
-  validateRegister,
-  type RegisterErrors,
-  type RegisterValues,
-} from '@/lib/auth';
+import { ApiError, register } from '@/lib/api';
+import { fieldErrors, firstField } from '@/lib/form-errors';
 
-const fieldOrder: (keyof RegisterValues)[] = ['name', 'email', 'password', 'confirmPassword'];
+const FIELDS = ['name', 'email', 'password', 'confirmPassword'] as const;
+type RegisterField = (typeof FIELDS)[number];
+
+const unreachable = 'We could not reach the store. Please try again in a moment.';
 
 export function RegisterForm() {
   const router = useRouter();
-  const { signIn } = useSession();
+  const queryClient = useQueryClient();
   const formRef = useRef<HTMLFormElement>(null);
-  const [values, setValues] = useState<RegisterValues>({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
-  const [errors, setErrors] = useState<RegisterErrors>({});
+  const submitting = useRef(false);
+  const [values, setValues] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [errors, setErrors] = useState<Partial<Record<RegisterField, string>>>({});
+  const [banner, setBanner] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function update(name: keyof RegisterValues, value: string) {
+  function update(name: RegisterField, value: string) {
     setValues((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: undefined }));
   }
 
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    const found = validateRegister(values);
-    setErrors(found);
+  function show(problems: Partial<Record<RegisterField, string>>) {
+    setErrors(problems);
+    const first = firstField(problems, FIELDS);
+    if (first) formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+  }
 
-    const firstInvalid = fieldOrder.find((name) => found[name]);
-    if (firstInvalid) {
-      formRef.current?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (submitting.current) return;
+
+    // The one rule the API cannot check: it never receives the confirmation.
+    if (values.confirmPassword !== values.password) {
+      setBanner(null);
+      show({ confirmPassword: 'The passwords do not match.' });
       return;
     }
 
-    // The password is checked and then discarded; only the name and email are kept in this demo.
-    signIn({ name: values.name.trim(), email: values.email.trim() });
-    router.push('/account');
+    submitting.current = true;
+    setBusy(true);
+    setBanner(null);
+    setErrors({});
+
+    try {
+      const user = await register(values.name, values.email, values.password);
+      queryClient.setQueryData(SESSION_QUERY_KEY, user);
+      router.replace('/account');
+      router.refresh();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        show({ email: error.message });
+      } else if (error instanceof ApiError && error.status === 422) {
+        const { fields, other } = fieldErrors(error.problems, FIELDS);
+        show(fields);
+        if (other) setBanner(other);
+      } else if (error instanceof ApiError && error.status < 500) {
+        setBanner(error.message);
+      } else {
+        setBanner(unreachable);
+      }
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
   }
 
   return (
     <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-4">
+      {banner && (
+        <p role="alert" className="border-error text-error rounded-sm border p-3 text-sm">
+          {banner}
+        </p>
+      )}
       <Field
         name="name"
         label="Full name"
@@ -75,9 +107,7 @@ export function RegisterForm() {
         error={errors.password}
         onChange={(event) => update('password', event.target.value)}
       />
-      <p className="text-muted -mt-2 text-xs">
-        At least {MIN_PASSWORD_LENGTH} characters, with a letter and a number.
-      </p>
+      <p className="text-muted -mt-2 text-xs">At least 8 characters, with a letter and a number.</p>
       <PasswordField
         name="confirmPassword"
         label="Confirm password"
@@ -88,9 +118,10 @@ export function RegisterForm() {
       />
       <button
         type="submit"
-        className="bg-text text-bg hover:bg-dark-2 w-full rounded-sm px-8 py-4 text-xs font-medium tracking-wide uppercase transition-colors"
+        disabled={busy}
+        className="bg-text text-bg hover:bg-dark-2 w-full rounded-sm px-8 py-4 text-xs font-medium tracking-wide uppercase transition-colors disabled:opacity-40"
       >
-        Create account
+        {busy ? 'Creating account…' : 'Create account'}
       </button>
       <p className="text-sm">
         Already have an account?{' '}

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { useSession } from '@/components/account/SessionProvider';
+import { useSession } from '@/components/account/useSession';
 import { ChevronIcon, CloseIcon, MenuIcon } from '@/components/ui/icons';
 import type { NavItem, NavLink } from '@/data/navigation';
 

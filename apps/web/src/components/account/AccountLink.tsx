@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession } from '@/components/account/SessionProvider';
+import { useSession } from '@/components/account/useSession';
 import { UserIcon } from '@/components/ui/icons';
 
 export function AccountLink({ className = '' }: { className?: string }) {
