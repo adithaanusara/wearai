@@ -143,12 +143,15 @@ describe('cart and checkout requests', () => {
       postalCode: '10250',
     };
 
-    await placeOrder(order, 'key-12345678');
+    await placeOrder({ ...order, expectedTotal: 6950 }, 'key-12345678');
 
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toBe('http://localhost:8000/api/v1/orders');
     expect(options.headers['Idempotency-Key']).toBe('key-12345678');
-    expect(Object.keys(JSON.parse(options.body)).join()).not.toMatch(/price|total|shipping/i);
+    const sent = JSON.parse(options.body);
+    // The total the shopper saw is sent for comparison; no price, shipping or subtotal ever is.
+    expect(sent.expectedTotal).toBe(6950);
+    expect(Object.keys(sent).join()).not.toMatch(/price|shipping|subtotal/i);
   });
 
   it('does not send a body or content type on plain reads', async () => {
@@ -236,6 +239,45 @@ describe('authentication requests', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8000/api/v1/orders?page=2');
     expect(fetchMock.mock.calls[0][1].headers.Cookie).toBe('session=abc');
     expect(fetchMock.mock.calls[1][0]).toBe('http://localhost:8000/api/v1/orders');
+  });
+});
+
+describe('structured errors', () => {
+  it('reads a code, message and extra facts from an object detail', async () => {
+    vi.stubGlobal(
+      'fetch',
+      respond(409, {
+        detail: { code: 'price_changed', message: 'Prices changed.', total: 8450 },
+      }),
+    );
+
+    const error = await quoteCart([], 'standard').catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      status: 409,
+      message: 'Prices changed.',
+      code: 'price_changed',
+      details: { total: 8450 },
+    });
+  });
+
+  it('has no code for a plain string error', async () => {
+    vi.stubGlobal('fetch', respond(404, { detail: 'Product not found' }));
+
+    const error = (await getProduct('x').catch((e: unknown) => e)) as ApiError;
+
+    expect(error.code).toBeNull();
+    expect(error.details).toEqual({});
+  });
+
+  it('falls back to a generic message for an object detail without one', async () => {
+    vi.stubGlobal('fetch', respond(409, { detail: { code: 'odd' } }));
+
+    await expect(quoteCart([], 'standard')).rejects.toMatchObject({
+      message: 'Request failed (409)',
+      code: 'odd',
+    });
   });
 });
 

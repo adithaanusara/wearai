@@ -171,6 +171,135 @@ def test_shipping_follows_the_delivery_method(client: TestClient) -> None:
     assert (free["subtotal"], free["shipping"], free["total"]) == (18900, 0, 18900)
 
 
+# ---------- the shopper must agree to the total ----------
+
+
+def test_an_order_is_placed_when_the_expected_total_matches(client: TestClient) -> None:
+    response = place_order(client, expectedTotal=6950)
+
+    assert response.status_code == 201
+    assert response.json()["total"] == 6950
+
+
+def test_the_expected_total_is_optional(client: TestClient) -> None:
+    body = order_body()
+    assert "expectedTotal" not in body
+
+    assert client.post(ORDERS, json=body).status_code == 201
+    assert place_order(client, expectedTotal=None).status_code == 201
+
+
+@pytest.mark.parametrize("expected", [6949, 6951, 0, 1_000_000])
+def test_a_different_total_is_refused_and_nothing_is_created(
+    client: TestClient, db: Session, expected: int
+) -> None:
+    response = place_order(client, expectedTotal=expected)
+
+    detail = response.json()["detail"]
+    assert response.status_code == 409
+    assert detail["code"] == "price_changed"
+    assert detail["total"] == 6950  # the current total, so the shopper can decide
+    assert db.scalars(select(Order)).all() == []
+
+
+def test_a_price_rise_after_the_summary_is_caught(client: TestClient, db: Session) -> None:
+    # The shopper saw 6,950 (2 x 3,250 + 450 delivery); then the price went up.
+    db.execute(update(Product).where(Product.id == "w-tee-01").values(price=4000))
+    db.commit()
+
+    refused = place_order(client, expectedTotal=6950)
+
+    assert refused.status_code == 409
+    assert refused.json()["detail"]["total"] == 8450
+    assert db.scalars(select(Order)).all() == []
+    # After reviewing the new total, the shopper can place the order.
+    placed = place_order(client, expectedTotal=8450)
+    assert placed.status_code == 201 and placed.json()["total"] == 8450
+
+
+def test_a_price_drop_is_also_shown_not_applied_silently(client: TestClient, db: Session) -> None:
+    db.execute(update(Product).where(Product.id == "w-tee-01").values(price=3000))
+    db.commit()
+
+    response = place_order(client, expectedTotal=6950)
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["total"] == 6450
+
+
+def test_crossing_the_free_delivery_threshold_counts_as_a_change(
+    client: TestClient, db: Session
+) -> None:
+    line = [{"productId": "m-jog-01", "size": "M", "quantity": 2}]
+    assert place_order(client, items=line, expectedTotal=15350).status_code == 201  # 14,900 + 450
+
+    db.execute(update(Product).where(Product.id == "m-jog-01").values(price=7500))
+    db.commit()
+    response = place_order(client, items=line, expectedTotal=15350)
+
+    # 15,000 now qualifies for free delivery, so the total is 15,000.
+    assert response.status_code == 409
+    assert response.json()["detail"]["total"] == 15000
+
+
+@pytest.mark.parametrize("expected", ["6950", 6950.5, -1, True, 10**9, [6950]])
+def test_an_invalid_expected_total_is_rejected(client: TestClient, db: Session, expected) -> None:
+    response = place_order(client, expectedTotal=expected)
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "expectedTotal"]
+    assert db.scalars(select(Order)).all() == []
+
+
+def test_the_expected_total_is_never_used_as_a_price(client: TestClient) -> None:
+    order = place_order(client, expectedTotal=6950).json()
+
+    assert order["total"] == 6950 and order["lines"][0]["unitPrice"] == 3250
+    # Even a matching total cannot lower what the catalogue says.
+    assert place_order(client, expectedTotal=1).status_code == 409
+
+
+def test_a_retry_of_a_placed_order_is_not_refused_when_prices_changed_since(
+    client: TestClient, db: Session
+) -> None:
+    headers = {"Idempotency-Key": "abcdefgh12345678"}
+    first = place_order(client, headers=headers, expectedTotal=6950)
+    db.execute(update(Product).where(Product.id == "w-tee-01").values(price=9000))
+    db.commit()
+
+    retry = place_order(client, headers=headers, expectedTotal=6950)
+
+    assert (first.status_code, retry.status_code) == (201, 200)
+    assert retry.json() == first.json()  # the original order, at its original price
+    assert len(db.scalars(select(Order)).all()) == 1
+
+
+def test_a_refused_attempt_does_not_use_up_its_idempotency_key(
+    client: TestClient, db: Session
+) -> None:
+    headers = {"Idempotency-Key": "abcdefgh12345678"}
+    db.execute(update(Product).where(Product.id == "w-tee-01").values(price=4000))
+    db.commit()
+
+    refused = place_order(client, headers=headers, expectedTotal=6950)
+    placed = place_order(client, headers=headers, expectedTotal=8450)
+
+    assert (refused.status_code, placed.status_code) == (409, 201)
+    assert len(db.scalars(select(Order)).all()) == 1
+
+
+def test_the_two_kinds_of_conflict_can_be_told_apart(client: TestClient) -> None:
+    headers = {"Idempotency-Key": "abcdefgh12345678"}
+    place_order(client, headers=headers)
+
+    reused = place_order(client, headers=headers, deliveryMethod="express")
+    changed = place_order(client, expectedTotal=1)
+
+    assert reused.status_code == changed.status_code == 409
+    assert reused.json()["detail"]["code"] == "idempotency_conflict"
+    assert changed.json()["detail"]["code"] == "price_changed"
+
+
 # ---------- the cart ----------
 
 

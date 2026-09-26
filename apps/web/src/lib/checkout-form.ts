@@ -1,4 +1,5 @@
-import type { ApiProblem } from '@/lib/api';
+import { ApiError, type ApiProblem } from '@/lib/api';
+import { formatPrice } from '@/lib/format';
 
 export interface CheckoutValues {
   email: string;
@@ -79,4 +80,17 @@ export function mapProblems(problems: ApiProblem[]): MappedProblems {
 
 export function firstInvalidField(errors: CheckoutErrors): CheckoutField | undefined {
   return FIELD_ORDER.find((field) => errors[field]);
+}
+
+/** The new total when the API refused an order because the price changed, otherwise null. */
+export function readPriceChange(error: unknown): number | null {
+  if (!(error instanceof ApiError) || error.status !== 409 || error.code !== 'price_changed') {
+    return null;
+  }
+  const total = error.details.total;
+  return typeof total === 'number' ? total : null;
+}
+
+export function priceChangedMessage(total: number): string {
+  return `The price of your order changed while you were checking out. The total is now ${formatPrice(total)}. Please review it and place the order again.`;
 }

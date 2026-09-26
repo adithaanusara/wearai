@@ -34,6 +34,14 @@ class IdempotencyConflictError(Exception):
     """The Idempotency-Key was already used for a different request."""
 
 
+class PriceChangedError(Exception):
+    """The real total differs from the one the shopper was shown."""
+
+    def __init__(self, total: int) -> None:
+        super().__init__(f"The total is now {total}")
+        self.total = total
+
+
 @dataclass(frozen=True)
 class PricedLine:
     product: Product
@@ -114,6 +122,11 @@ def create_order(
 
     lines = price_items(db, data.items)
     totals = compute_totals(lines, data.delivery_method)
+
+    # Refuse to charge a different amount from the one the shopper agreed to. This comes after the
+    # replay check above, so a retry of an order that already exists is never rejected for this.
+    if data.expected_total is not None and data.expected_total != totals.total:
+        raise PriceChangedError(totals.total)
 
     for _ in range(_MAX_REFERENCE_ATTEMPTS):
         order = Order(

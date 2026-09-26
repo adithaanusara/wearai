@@ -9,6 +9,7 @@ from app.models import Order
 from app.schemas import CamelModel
 
 MAX_LINES = 50
+MAX_MONEY = 100_000_000  # LKR; far above any real order, and rejects absurd input
 # [0-9] rather than \d, because \d also matches digits from other scripts (such as fullwidth ones).
 _PHONE = re.compile(
     r"^(?:\+94|0)(7[0-9]{8})$"
@@ -68,6 +69,9 @@ class OrderIn(QuoteIn):
     district: str
     postal_code: str
     payment_method: str
+    # The total the shopper was shown, in whole LKR. It is only compared with the real total and
+    # never used as a price. Leaving it out skips the comparison.
+    expected_total: int | None = Field(default=None, ge=0, le=MAX_MONEY, strict=True)
 
     @field_validator("email")
     @classmethod

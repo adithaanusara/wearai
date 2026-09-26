@@ -101,6 +101,8 @@ export interface OrderRequest {
   province: string;
   district: string;
   postalCode: string;
+  /** The total the shopper was shown. The server only compares it; it never sets a price. */
+  expectedTotal?: number;
 }
 
 export interface User {

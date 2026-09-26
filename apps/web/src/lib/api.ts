@@ -33,12 +33,23 @@ export interface ApiProblem {
 export class ApiError extends Error {
   readonly status: number;
   readonly problems: ApiProblem[];
+  /** A machine-readable reason, such as "price_changed", when the API gives one. */
+  readonly code: string | null;
+  /** Extra facts that came with the error, such as the new total after a price change. */
+  readonly details: Record<string, unknown>;
 
-  constructor(status: number, message: string, problems: ApiProblem[] = []) {
+  constructor(
+    status: number,
+    message: string,
+    problems: ApiProblem[] = [],
+    extra: { code?: string; details?: Record<string, unknown> } = {},
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.problems = problems;
+    this.code = extra.code ?? null;
+    this.details = extra.details ?? {};
   }
 }
 
@@ -68,6 +79,14 @@ async function readError(response: Response): Promise<ApiError> {
     const body: unknown = await response.json();
     const detail = (body as { detail?: unknown }).detail;
     if (typeof detail === 'string') return new ApiError(response.status, detail);
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+      // A structured error: { code, message, ...facts }.
+      const { code, message, ...details } = detail as Record<string, unknown>;
+      return new ApiError(response.status, typeof message === 'string' ? message : fallback, [], {
+        code: typeof code === 'string' ? code : undefined,
+        details,
+      });
+    }
     if (Array.isArray(detail)) {
       const problems = detail.filter(isProblem);
       return new ApiError(response.status, problems[0]?.msg ?? fallback, problems);
