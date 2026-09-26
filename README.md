@@ -48,6 +48,14 @@ alembic upgrade head && python -m app.seed
 
 If pages show **"Something went wrong"**, the API (or the database behind it) is usually not running. In development the error page says so and shows the reason.
 
+### The chat assistant
+
+The chat widget talks to the API, which asks Anthropic's model. You can use it three ways:
+
+- **No key (default):** the chat says it is unavailable. Everything else works.
+- **Free, with a fake AI (for development and demos):** run `pnpm dev:fake-ai` in one terminal and `pnpm dev:api:fake` (instead of `pnpm dev:api`) in another. The whole real path runs (the API, the store's tools, your products), but the wording comes from a simple fake, and every answer ends with `[dev fake AI]`. It never uses your real key.
+- **The real assistant:** put `ANTHROPIC_API_KEY=...` in `.env` (never in `.env.example`, which is committed) and use `pnpm dev:api`. The Anthropic account needs credits.
+
 If you serve the website from a port other than 3000, add its origin to `CORS_ORIGINS` in `.env` (for example `CORS_ORIGINS=["http://localhost:3000","http://localhost:3001"]`). The API refuses browser requests from origins it does not trust; that is its CSRF protection.
 
 The website proxies `/api/*` to the API (`API_URL`, default `http://localhost:8000`), so the browser only talks to one origin. Pages that show products render on request; building the site does not need the API to be running.

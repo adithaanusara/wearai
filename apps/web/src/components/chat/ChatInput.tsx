@@ -1,5 +1,6 @@
 import { forwardRef, useState, type FormEvent } from 'react';
 import { SendIcon } from '@/components/ui/icons';
+import { MAX_MESSAGE_CHARS } from '@/lib/chat-client';
 
 interface ChatInputProps {
   disabled: boolean;
@@ -31,6 +32,7 @@ export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function C
         type="text"
         value={text}
         autoComplete="off"
+        maxLength={MAX_MESSAGE_CHARS}
         placeholder="Type your message…"
         className="border-border bg-bg min-w-0 flex-1 rounded-sm border px-3 py-3 text-sm"
         onChange={(event) => setText(event.target.value)}

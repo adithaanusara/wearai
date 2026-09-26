@@ -1,18 +1,55 @@
-import { getMockReply } from '@/lib/chat-mock';
-import type { ChatRequest, ChatResponse } from '@/types/chat';
+import { ApiError, sendChat } from '@/lib/api';
+import type { ChatMessage, ChatRequest, ChatResponse } from '@/types/chat';
 
-const MOCK_DELAY_MS = 900;
+// What the API accepts. The API enforces them; these keep the widget from ever sending too much.
+export const MAX_MESSAGE_CHARS = 1000;
+export const MAX_MESSAGES = 20;
+export const MAX_TOTAL_CHARS = 6000;
+
+/** The only place the widget talks to the assistant. */
+export function sendMessage(request: ChatRequest): Promise<ChatResponse> {
+  return sendChat(request.messages);
+}
 
 /**
- * The only place the widget talks to an assistant. It answers locally for now;
- * once the backend exists this becomes a POST to /api/chat with the same request and response types.
+ * The part of the conversation to send: the newest messages that fit the API's limits, starting with
+ * one from the customer. Notices the widget added itself are left out, and long messages are cut.
  */
-export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
-  const lastUserMessage = [...request.messages]
-    .reverse()
-    .find((message) => message.role === 'user');
+export function trimHistory(messages: ChatMessage[]): ChatRequest['messages'] {
+  const usable = messages
+    .filter((message) => !message.error)
+    .map(({ role, text }) => ({ role, text: text.slice(0, MAX_MESSAGE_CHARS) }));
 
-  // The delay lets the typing indicator show, like a real network call would.
-  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
-  return { reply: getMockReply(lastUserMessage?.text ?? '') };
+  const kept: ChatRequest['messages'] = [];
+  let total = 0;
+  for (let i = usable.length - 1; i >= 0; i--) {
+    const message = usable[i];
+    if (kept.length >= MAX_MESSAGES || total + message.text.length > MAX_TOTAL_CHARS) break;
+    kept.unshift(message);
+    total += message.text.length;
+  }
+  while (kept.length > 0 && kept[0].role === 'assistant') kept.shift();
+  return kept;
+}
+
+function describeWait(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return 'a moment';
+  if (seconds < 90) return `${Math.ceil(seconds)} seconds`;
+  return `${Math.ceil(seconds / 60)} minutes`;
+}
+
+/** What to tell the customer when the assistant could not answer. Never shows technical details. */
+export function chatErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.code === 'rate_limited') {
+      return `You are sending messages a little too quickly. Please try again in ${describeWait(Number(error.details.retryAfter))}.`;
+    }
+    if (error.status === 503) {
+      return "The assistant isn't available right now. You can still browse the shop, or use the details on our Contact page.";
+    }
+    if (error.status === 422) {
+      return 'That message could not be sent. Please shorten it and try again.';
+    }
+  }
+  return 'Sorry, something went wrong. Please try again.';
 }
