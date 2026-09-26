@@ -4,6 +4,8 @@
   "packageManager": "pnpm@11.15.1",
   "scripts": {
     "dev": "pnpm --filter web dev",
+    "db": "docker compose up -d db",
+    "dev:api": "cd apps/api && . .venv/bin/activate && uvicorn app.main:app --reload",
     "build": "pnpm --filter web build",
     "lint": "pnpm --filter web lint",
     "test": "pnpm --filter web test",
