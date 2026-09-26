@@ -37,7 +37,12 @@ def test_register_creates_the_account_and_signs_in(client: TestClient) -> None:
     response = register(client)
 
     assert response.status_code == 201
-    assert response.json() == {"id": response.json()["id"], "name": "Nimali Perera", "email": EMAIL}
+    assert response.json() == {
+        "id": response.json()["id"],
+        "name": "Nimali Perera",
+        "email": EMAIL,
+        "role": "customer",
+    }
     assert client.get("/api/v1/auth/me").json()["email"] == EMAIL
 
 
@@ -313,7 +318,12 @@ def test_a_signed_in_visitor_gets_their_user(client: TestClient) -> None:
 
     body = client.get("/api/v1/auth/session").json()
 
-    assert body["user"] == {"id": body["user"]["id"], "name": "Nimali Perera", "email": EMAIL}
+    assert body["user"] == {
+        "id": body["user"]["id"],
+        "name": "Nimali Perera",
+        "email": EMAIL,
+        "role": "customer",
+    }
     assert "password" not in str(body).lower()
 
 

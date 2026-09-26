@@ -45,7 +45,7 @@ def _end_current_session(request: Request, db: Session) -> None:
 
 
 def _user_out(user: User) -> UserOut:
-    return UserOut(id=user.id, name=user.name, email=user.email)
+    return UserOut(id=user.id, name=user.name, email=user.email, role=user.role)
 
 
 @router.post("/register", status_code=201, response_model=UserOut, dependencies=[TrustedOrigin])

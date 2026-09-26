@@ -75,3 +75,8 @@ def user_for_token(db: Session, token: str) -> User | None:
 def end_session(db: Session, token: str) -> None:
     db.execute(delete(UserSession).where(UserSession.id == security.hash_token(token)))
     db.commit()
+
+
+def end_all_sessions(db: Session, user_id: int) -> None:
+    """Signs a user out everywhere, for example after their role changes."""
+    db.execute(delete(UserSession).where(UserSession.user_id == user_id))
