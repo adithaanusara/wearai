@@ -107,13 +107,15 @@ async function readError(response: Response): Promise<ApiError> {
 
 interface RequestOptions {
   query?: Record<string, QueryValue>;
-  method?: 'GET' | 'POST' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   headers?: Record<string, string>;
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { query, method = 'GET', body, headers } = options;
+  // A file upload is sent as it is; the browser adds the multipart header, with its boundary.
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
 
   let response: Response;
   try {
@@ -122,10 +124,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(body === undefined || isForm ? {} : { 'Content-Type': 'application/json' }),
         ...headers,
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(503, 'The store service is unavailable.');
@@ -281,4 +283,27 @@ export const setProductArchived = (id: string, updatedAt: string, archive: boole
   request<AdminProduct>(`/admin/products/${segment(id)}/${archive ? 'archive' : 'restore'}`, {
     method: 'POST',
     body: { updatedAt },
+  });
+
+export const uploadProductImage = (id: string, updatedAt: string, file: File) => {
+  const form = new FormData();
+  form.append('updatedAt', updatedAt);
+  form.append('file', file);
+  return request<AdminProduct>(`/admin/products/${segment(id)}/images`, {
+    method: 'POST',
+    body: form,
+  });
+};
+
+export const removeProductImage = (id: string, imageId: number, updatedAt: string) =>
+  request<AdminProduct>(`/admin/products/${segment(id)}/images/${imageId}`, {
+    method: 'DELETE',
+    query: { updatedAt },
+  });
+
+/** Puts the images in the given order; the first becomes the default. */
+export const reorderProductImages = (id: string, updatedAt: string, imageIds: number[]) =>
+  request<AdminProduct>(`/admin/products/${segment(id)}/images/order`, {
+    method: 'PUT',
+    body: { updatedAt, imageIds },
   });

@@ -63,6 +63,11 @@ class AdminOrderOut(OrderOut):
     allowed_next: list[str]
 
 
+class AdminImageOut(CamelModel):
+    id: int
+    url: str
+
+
 class AdminProductOut(CamelModel):
     id: str
     slug: str
@@ -73,7 +78,7 @@ class AdminProductOut(CamelModel):
     price: int
     compare_at_price: int | None
     description: str
-    image: str | None
+    images: list[AdminImageOut]
     sizes: list[str]
     archived: bool
     updated_at: datetime
@@ -115,3 +120,10 @@ class ProductVersionIn(StrictModel):
     """Archive and restore also say which version they were based on."""
 
     updated_at: datetime
+
+
+class ImageOrderIn(StrictModel):
+    """The images in their new order, with the product version the admin was looking at."""
+
+    updated_at: datetime
+    image_ids: list[int] = Field(min_length=1, max_length=8)

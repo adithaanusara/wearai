@@ -101,7 +101,15 @@ Staff can look at every product (including archived ones); only admins can chang
 - Prices are whole LKR (0 up to 100,000,000) and a compare-at price must be higher than the price. Unknown fields are rejected. An edit that changes nothing writes nothing. Each real change is audited with the old and new values.
 - `python -m app.seed` only adds products that are missing, so it never undoes an edit or brings back an archived product.
 
-Not built yet in the admin area: creating products, sizes and colours, and image uploads.
+### Product images
+
+Admins can add, remove and reorder a product's images (up to 8, never fewer than one). The first is the default and the second shows on hover. Each change follows the same rules as other product edits: admin only, based on the product's version (`updatedAt`, so 409 if it is out of date), and audited.
+
+**Uploads are treated as hostile.** The file's name, content type and extension are ignored. The bytes are decoded with Pillow, and only if they really are a JPEG, PNG or WebP are they drawn again into a new file. That drops metadata (such as GPS position) and anything hidden inside or after the image. Refused: SVG and every other format, animated images, files over 5 MB, images under 200 or over 8,000 pixels on a side, and images over 25 megapixels (checked from the header, before any pixel is decoded). Photos are turned upright and shrunk to 2,000 pixels on the long edge. The stored name is a random 32-character value, so it can neither collide nor reach another folder. An upload whose size is not stated up front, or is far over the limit, is refused from its headers before the body is read.
+
+**Where files live.** `app/storage.py` defines a small storage interface (`save`, `delete`, `url_for`). While developing, files go to `apps/api/uploads/` (git ignores it, override with `UPLOAD_DIR`) and the API serves them at `/api/v1/media/<name>` with an exact content type, `nosniff`, a locked-down content security policy and a one-year cache (names never change). Only names this store generated are served, so a request cannot reach any other file. **For production, use a cloud bucket (S3, Cloudinary):** write one more class with the same three methods that returns absolute URLs, return it from `get_storage()`, and nothing else changes. Deleting an image removes its file only after the database change is saved, and a failed upload never leaves a file or a row behind. Behind a reverse proxy, also cap the request body size there.
+
+Not built yet in the admin area: creating products, sizes and colours, cropping, and per-image alt text (the shop uses the product name).
 
 ## Chat assistant
 

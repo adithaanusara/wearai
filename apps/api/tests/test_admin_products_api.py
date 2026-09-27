@@ -78,7 +78,7 @@ def test_staff_can_read_products(staff: TestClient) -> None:
     assert body["total"] == 17
     assert detail["name"] == "Essential Fitted Tee"
     assert detail["archived"] is False
-    assert detail["sizes"] and detail["image"]
+    assert detail["sizes"] and len(detail["images"]) == 2
     assert {"id", "slug", "price", "compareAtPrice", "description", "updatedAt"} <= detail.keys()
 
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ProductArchiveButton } from '@/components/admin/ProductArchiveButton';
 import { ProductEditForm } from '@/components/admin/ProductEditForm';
+import { ProductImages } from '@/components/admin/ProductImages';
 import type { AdminProduct } from '@/types/api';
 
 export interface Notice {
@@ -37,6 +38,13 @@ export function ProductAdminPanel({ product }: { product: AdminProduct }) {
         </h2>
         {/* A new key after every change makes the form start from the saved values. */}
         <ProductEditForm key={product.updatedAt} product={product} onNotice={setNotice} />
+      </section>
+
+      <section aria-labelledby="images-title">
+        <h2 id="images-title" className={sectionTitle}>
+          Images
+        </h2>
+        <ProductImages key={product.updatedAt} product={product} onNotice={setNotice} />
       </section>
 
       <section aria-labelledby="archive-title">

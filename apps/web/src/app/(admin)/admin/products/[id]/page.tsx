@@ -33,9 +33,9 @@ export default async function AdminProductPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="flex flex-col gap-6 sm:flex-row">
-        {product.image && (
+        {product.images[0] && (
           <div className="bg-surface relative aspect-4/5 w-40 shrink-0 overflow-hidden">
-            <Image src={product.image} alt="" fill sizes="160px" className="object-cover" />
+            <Image src={product.images[0].url} alt="" fill sizes="160px" className="object-cover" />
           </div>
         )}
         <dl className="space-y-3 text-sm">
