@@ -18,21 +18,24 @@ from app.api.deps import (
     require_staff,
 )
 from app.db import get_db
-from app.models import Order
+from app.models import Order, Product
 from app.schemas import Page, UserOut
 from app.schemas_admin import (
     AdminOrderOut,
+    AdminProductOut,
     AdminUserOut,
     AuditEntryOut,
     DashboardOut,
     OrderSummaryOut,
+    ProductEditIn,
+    ProductVersionIn,
     RoleChangeIn,
     StatusChangeIn,
     StatusHistoryOut,
 )
 from app.schemas_orders import OrderOut
 from app.services import admin as admin_service
-from app.services import admin_orders
+from app.services import admin_orders, admin_products
 
 # The origin check comes first and covers every method, so a forged request from another site
 # cannot change anything here.
@@ -126,6 +129,113 @@ def change_order_status(
         db.rollback()
         raise HTTPException(status_code=error.status_code, detail=error.as_detail()) from error
     return _order_detail(db, order)
+
+
+def _product_out(product: Product) -> AdminProductOut:
+    return AdminProductOut(
+        id=product.id,
+        slug=product.slug,
+        name=product.name,
+        colour=product.colour,
+        gender=product.gender,
+        category=product.category,
+        price=product.price,
+        compare_at_price=product.compare_at_price,
+        description=product.description,
+        image=product.images[0].url if product.images else None,
+        sizes=[size.label for size in product.sizes],
+        archived=product.archived_at is not None,
+        updated_at=product.updated_at,
+    )
+
+
+@staff_routes.get("/products", response_model=Page[AdminProductOut])
+def list_products(
+    _: StaffDep,
+    db: DbDep,
+    pagination: PaginationDep,
+    search: Annotated[str | None, Query(max_length=100)] = None,
+    archived: Annotated[str, Query(pattern="^(active|archived|all)$")] = "all",
+) -> Page[AdminProductOut]:
+    products, total = admin_products.list_products(
+        db, search=search, archived=archived, page=pagination.page, page_size=pagination.page_size
+    )
+    return Page(
+        items=[_product_out(product) for product in products],
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
+
+
+@staff_routes.get("/products/{product_id}", response_model=AdminProductOut)
+def get_product(product_id: str, _: StaffDep, db: DbDep) -> AdminProductOut:
+    product = admin_products.get_product(db, product_id)
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found.")
+    return _product_out(product)
+
+
+def _run_product_change(db: Session, change) -> AdminProductOut:
+    try:
+        product = change()
+    except admin_service.AdminError as error:
+        db.rollback()
+        raise HTTPException(status_code=error.status_code, detail=error.as_detail()) from error
+    return _product_out(product)
+
+
+@admin_routes.patch("/products/{product_id}", response_model=AdminProductOut)
+def edit_product(
+    product_id: str, body: ProductEditIn, actor: AdminDep, db: DbDep
+) -> AdminProductOut:
+    return _run_product_change(
+        db,
+        lambda: admin_products.edit_product(
+            db,
+            actor=actor,
+            product_id=product_id,
+            expected_updated_at=body.updated_at,
+            changes={
+                "name": body.name,
+                "price": body.price,
+                "compare_at_price": body.compare_at_price,
+                "description": body.description,
+            },
+        ),
+    )
+
+
+@admin_routes.post("/products/{product_id}/archive", response_model=AdminProductOut)
+def archive_product(
+    product_id: str, body: ProductVersionIn, actor: AdminDep, db: DbDep
+) -> AdminProductOut:
+    return _run_product_change(
+        db,
+        lambda: admin_products.set_archived(
+            db,
+            actor=actor,
+            product_id=product_id,
+            expected_updated_at=body.updated_at,
+            archive=True,
+        ),
+    )
+
+
+@admin_routes.post("/products/{product_id}/restore", response_model=AdminProductOut)
+def restore_product(
+    product_id: str, body: ProductVersionIn, actor: AdminDep, db: DbDep
+) -> AdminProductOut:
+    return _run_product_change(
+        db,
+        lambda: admin_products.set_archived(
+            db,
+            actor=actor,
+            product_id=product_id,
+            expected_updated_at=body.updated_at,
+            archive=False,
+        ),
+    )
 
 
 @admin_routes.get("/users", response_model=Page[AdminUserOut])

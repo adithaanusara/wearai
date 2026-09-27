@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select, text, update
@@ -56,7 +58,7 @@ def admin_routes() -> list[tuple[str, str, str]]:
         for method, operation in operations.items():
             roles = [tag for tag in operation["tags"] if tag.startswith("role:")]
             assert len(roles) == 1, f"{method} {path} must declare exactly one role tag"
-            concrete = path.replace("{user_id}", "1").replace("{reference}", "WA-NOPE")
+            concrete = re.sub(r"\{[^}]+\}", "WA-NOPE", path.replace("{user_id}", "1"))
             found.append((method.upper(), concrete, roles[0][5:]))
     return found
 
@@ -70,7 +72,7 @@ def call(browser: TestClient, method: str, path: str):
 
 
 def test_there_are_admin_routes_to_check() -> None:
-    assert len(admin_routes()) >= 8
+    assert len(admin_routes()) >= 13
 
 
 @pytest.mark.parametrize(("method", "path", "least"), admin_routes())

@@ -8,6 +8,7 @@ import type { Role } from '@/types/api';
 const links: { href: string; label: string; minimum: Role }[] = [
   { href: '/admin', label: 'Dashboard', minimum: 'staff' },
   { href: '/admin/orders', label: 'Orders', minimum: 'staff' },
+  { href: '/admin/products', label: 'Products', minimum: 'staff' },
   { href: '/admin/users', label: 'Users', minimum: 'admin' },
   { href: '/admin/audit-log', label: 'Audit log', minimum: 'admin' },
 ];

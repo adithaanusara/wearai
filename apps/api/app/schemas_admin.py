@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import Any, Literal
 
+from pydantic import Field, field_validator, model_validator
+
 from app.schemas import CamelModel
-from app.schemas_orders import OrderOut, StrictModel
+from app.schemas_orders import MAX_MONEY, OrderOut, StrictModel
 
 
 class AdminUserOut(CamelModel):
@@ -59,3 +61,57 @@ class StatusHistoryOut(CamelModel):
 class AdminOrderOut(OrderOut):
     history: list[StatusHistoryOut]
     allowed_next: list[str]
+
+
+class AdminProductOut(CamelModel):
+    id: str
+    slug: str
+    name: str
+    colour: str
+    gender: str
+    category: str
+    price: int
+    compare_at_price: int | None
+    description: str
+    image: str | None
+    sizes: list[str]
+    archived: bool
+    updated_at: datetime
+
+
+class ProductEditIn(StrictModel):
+    """Every editable field is sent each time, with the version (`updatedAt`) it is based on."""
+
+    updated_at: datetime
+    name: str
+    price: int = Field(ge=0, le=MAX_MONEY, strict=True)
+    compare_at_price: int | None = Field(ge=0, le=MAX_MONEY, strict=True)
+    description: str
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        value = value.strip()
+        if not value or len(value) > 120:
+            raise ValueError("Enter a name of up to 120 characters.")
+        return value
+
+    @field_validator("description")
+    @classmethod
+    def _description(cls, value: str) -> str:
+        value = value.strip()
+        if not value or len(value) > 2000:
+            raise ValueError("Enter a description of up to 2,000 characters.")
+        return value
+
+    @model_validator(mode="after")
+    def _compare_at_above_price(self) -> "ProductEditIn":
+        if self.compare_at_price is not None and self.compare_at_price <= self.price:
+            raise ValueError("The compare-at price must be higher than the price.")
+        return self
+
+
+class ProductVersionIn(StrictModel):
+    """Archive and restore also say which version they were based on."""
+
+    updated_at: datetime

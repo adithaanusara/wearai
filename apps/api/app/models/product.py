@@ -1,14 +1,16 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Date,
+    DateTime,
     ForeignKey,
     Integer,
     SmallInteger,
     String,
     Text,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -44,6 +46,15 @@ class Product(Base):
     description: Mapped[str] = mapped_column(Text)
     # Lower numbers come first in the default "featured" order.
     position: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
+    # Products are never deleted (past orders refer to them); archiving hides them from the shop.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Changes on every edit. An admin's edit says which value it was based on, so two admins
+    # cannot overwrite each other unknowingly.
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
+    )
 
     images: Mapped[list["ProductImage"]] = relationship(
         order_by="ProductImage.position", cascade="all, delete-orphan"

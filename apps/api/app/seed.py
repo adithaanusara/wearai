@@ -34,15 +34,16 @@ def _build_product(data: dict, position: int) -> Product:
 
 
 def load_catalogue(session: Session, path: Path = CATALOGUE_PATH) -> tuple[int, int]:
-    """Inserts or replaces the products and reviews in the file. Safe to run more than once."""
+    """Adds the products and reviews in the file that are not in the database yet.
+
+    Products that already exist are left alone, so edits and archiving done in the admin area
+    survive a second run (and products that have been ordered cannot be deleted anyway).
+    """
     catalogue = json.loads(path.read_text())
 
     for position, data in enumerate(catalogue["products"]):
-        existing = session.get(Product, data["id"])
-        if existing:
-            session.delete(existing)
-            session.flush()
-        session.add(_build_product(data, position))
+        if session.get(Product, data["id"]) is None:
+            session.add(_build_product(data, position))
 
     for data in catalogue["reviews"]:
         session.merge(

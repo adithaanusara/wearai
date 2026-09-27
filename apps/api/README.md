@@ -21,7 +21,7 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 
 alembic upgrade head             # create the tables
-python -m app.seed               # load the starter catalogue (safe to run again)
+python -m app.seed               # add the starter products that are missing (never changes existing ones)
 uvicorn app.main:app --reload    # http://localhost:8000/docs
 ```
 
@@ -92,7 +92,16 @@ Staff and admins can search orders (reference, email or name), filter by status,
 
 Each change states the status the screen showed (`expectedStatus`). The order row is locked while it is checked, so if two people act at once the second gets 409 `stale_status` instead of silently overwriting the first. Every change is stored in `order_status_history` (from, to, who, when) and in the audit log, in the same transaction.
 
-Not built yet in the admin area: product editing (products will be archived, never deleted) and image uploads.
+### Product management
+
+Staff can look at every product (including archived ones); only admins can change them. An admin can edit the name, price, compare-at price and description, and archive or restore a product. **Products are never deleted**, because past orders point at them.
+
+- An archived product disappears from the catalogue, collections, search, related items, the colour options of its style, the chat assistant, and the price and size filters. Its page is a 404 and it cannot be quoted or ordered ("no longer available"). A cart that still holds it is told to remove it. Old orders keep the name and price they were bought at.
+- Every edit sends the `updatedAt` it was based on. The product row is locked while it is checked, so if two admins save at once the second gets 409 `stale_product` and the page reloads the newer version. Archive and restore work the same way.
+- Prices are whole LKR (0 up to 100,000,000) and a compare-at price must be higher than the price. Unknown fields are rejected. An edit that changes nothing writes nothing. Each real change is audited with the old and new values.
+- `python -m app.seed` only adds products that are missing, so it never undoes an edit or brings back an archived product.
+
+Not built yet in the admin area: creating products, sizes and colours, and image uploads.
 
 ## Chat assistant
 
