@@ -6,6 +6,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
 ORDER_STATUSES = ("pending", "confirmed", "shipped", "delivered", "cancelled")
+# Separate from delivery status: whether the money has actually arrived. cod and bank-transfer stay
+# "unpaid" (no gateway involved); "card" moves through these as PayHere's webhook reports it.
+PAYMENT_STATUSES = ("unpaid", "pending", "paid", "failed")
 
 
 class Order(Base):
@@ -26,6 +29,12 @@ class Order(Base):
         ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
     status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
+    payment_status: Mapped[str] = mapped_column(
+        String(10), default="unpaid", server_default="unpaid"
+    )
+    # Set once PayHere reports a payment id for this order, so a later notification is matched to
+    # it.
+    payhere_payment_id: Mapped[str | None] = mapped_column(String(40))
 
     email: Mapped[str] = mapped_column(String(254))
     phone: Mapped[str] = mapped_column(String(20))
@@ -55,6 +64,9 @@ class Order(Base):
 
     items: Mapped[list["OrderItem"]] = relationship(
         order_by="OrderItem.position", cascade="all, delete-orphan"
+    )
+    payment_events: Mapped[list["PaymentEvent"]] = relationship(
+        order_by="PaymentEvent.id", cascade="all, delete-orphan"
     )
 
 
@@ -93,6 +105,25 @@ class OrderStatusHistory(Base):
     # Kept as text too, so the record still says who acted if the account is later deleted.
     actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     actor_email: Mapped[str] = mapped_column(String(254))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+
+class PaymentEvent(Base):
+    """One report about an order's payment: PayHere's webhook, or a note the server added."""
+
+    __tablename__ = "payment_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    from_status: Mapped[str] = mapped_column(String(10))
+    to_status: Mapped[str] = mapped_column(String(10))
+    # "payhere_notify", "payhere_notify_replay" (repeat that changed nothing), or
+    # "payhere_notify_rejected".
+    source: Mapped[str] = mapped_column(String(30))
+    method: Mapped[str | None] = mapped_column(String(20))
+    message: Mapped[str | None] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

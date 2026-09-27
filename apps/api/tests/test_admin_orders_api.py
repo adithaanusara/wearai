@@ -64,9 +64,15 @@ def test_staff_list_orders_newest_first(staff: TestClient) -> None:
 
     assert body["total"] == 2
     assert [o["reference"] for o in body["items"]] == [second, first]
-    assert {"reference", "status", "email", "fullName", "total", "createdAt"} == body["items"][
-        0
-    ].keys()
+    assert {
+        "reference",
+        "status",
+        "paymentStatus",
+        "email",
+        "fullName",
+        "total",
+        "createdAt",
+    } == body["items"][0].keys()
 
 
 def test_orders_filter_by_status(staff: TestClient, db: Session) -> None:

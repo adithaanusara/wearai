@@ -7,6 +7,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/account/useSession';
 import { useCart } from '@/components/cart/CartProvider';
 import { OrderSummary } from '@/components/cart/OrderSummary';
+import { PayHereRedirect } from '@/components/checkout/PayHereRedirect';
 import { ChoiceGroup } from '@/components/checkout/ChoiceGroup';
 import { ButtonLink } from '@/components/ui/ButtonLink';
 import { Field, SelectField } from '@/components/ui/Field';
@@ -24,7 +25,7 @@ import { formatPrice } from '@/lib/format';
 import { clearCheckoutKey, getCheckoutKey } from '@/lib/idempotency';
 import { saveOrder } from '@/lib/order-store';
 import { useHydrated } from '@/lib/use-hydrated';
-import type { CheckoutOptions } from '@/types/api';
+import type { CheckoutOptions, Order } from '@/types/api';
 
 const sectionTitle = 'mb-4 text-sm font-medium tracking-wide uppercase';
 
@@ -50,6 +51,7 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
   const [banner, setBanner] = useState<{ text: string; cartLink?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [placed, setPlaced] = useState(false);
+  const [redirecting, setRedirecting] = useState<Order | null>(null);
 
   // The server prices the cart. The numbers on this page are its answer, never our own arithmetic.
   const quote = useQuery({
@@ -127,6 +129,12 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
       clearCheckoutKey();
       setPlaced(true);
       clearCart();
+      if (order.payhere) {
+        // The order exists but is not yet paid; the shopper is sent to PayHere next, not to the
+        // confirmation page, which shows only once payment is confirmed.
+        setRedirecting(order);
+        return;
+      }
       router.push(`/checkout/success?order=${encodeURIComponent(order.reference)}`);
     } catch (error) {
       showProblems(error);
@@ -135,6 +143,8 @@ export function CheckoutForm({ options }: { options: CheckoutOptions }) {
       setBusy(false);
     }
   }
+
+  if (redirecting?.payhere) return <PayHereRedirect checkout={redirecting.payhere} />;
 
   if (!hydrated || placed) return <div className="min-h-64" aria-hidden="true" />;
 

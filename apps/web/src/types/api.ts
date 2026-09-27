@@ -70,9 +70,37 @@ export interface Quote {
   total: number;
 }
 
+export interface PayHereCheckout {
+  action: string;
+  merchantId: string;
+  orderId: string;
+  items: string;
+  amount: string;
+  currency: string;
+  hash: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  returnUrl: string;
+  cancelUrl: string;
+  notifyUrl: string;
+}
+
+export interface OrderStatus {
+  status: string;
+  paymentStatus: string;
+}
+
 export interface Order extends Quote {
   reference: string;
   status: string;
+  paymentStatus: string;
+  /** Present only on the response to placing a card order, and only once. */
+  payhere: PayHereCheckout | null;
   email: string;
   phone: string;
   fullName: string;
@@ -138,6 +166,7 @@ export interface Dashboard {
 export interface OrderSummary {
   reference: string;
   status: string;
+  paymentStatus: string;
   email: string;
   fullName: string;
   total: number;
@@ -151,10 +180,20 @@ export interface StatusChange {
   createdAt: string;
 }
 
+export interface PaymentEvent {
+  fromStatus: string;
+  toStatus: string;
+  source: string;
+  method: string | null;
+  message: string | null;
+  createdAt: string;
+}
+
 /** An order as staff see it: the customer's order plus its history and the moves allowed now. */
 export interface AdminOrder extends Order {
   history: StatusChange[];
   allowedNext: string[];
+  paymentEvents: PaymentEvent[];
 }
 
 export interface AdminProduct {

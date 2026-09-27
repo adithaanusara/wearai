@@ -30,6 +30,7 @@ from app.schemas_admin import (
     DashboardOut,
     ImageOrderIn,
     OrderSummaryOut,
+    PaymentEventOut,
     ProductEditIn,
     ProductVersionIn,
     RoleChangeIn,
@@ -38,7 +39,7 @@ from app.schemas_admin import (
 )
 from app.schemas_orders import OrderOut
 from app.services import admin as admin_service
-from app.services import admin_images, admin_orders, admin_products
+from app.services import admin_images, admin_orders, admin_products, payments
 from app.services.images import MAX_BYTES
 from app.storage import ImageStorage, get_storage
 
@@ -73,10 +74,22 @@ def _order_detail(db: Session, order: Order) -> AdminOrderOut:
         )
         for h in admin_orders.history_for(db, order)
     ]
+    payment_events = [
+        PaymentEventOut(
+            from_status=e.from_status,
+            to_status=e.to_status,
+            source=e.source,
+            method=e.method,
+            message=e.message,
+            created_at=e.created_at,
+        )
+        for e in payments.events_for(db, order)
+    ]
     return AdminOrderOut(
         **dict(OrderOut.from_order(order)),
         history=history,
         allowed_next=admin_orders.allowed_next(order.status),
+        payment_events=payment_events,
     )
 
 
@@ -98,6 +111,7 @@ def list_orders(
             OrderSummaryOut(
                 reference=o.reference,
                 status=o.status,
+                payment_status=o.payment_status,
                 email=o.email,
                 full_name=o.full_name,
                 total=o.total,

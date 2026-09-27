@@ -12,6 +12,7 @@ from app.api import (
     health,
     media,
     orders,
+    payments,
     products,
     search,
 )
@@ -93,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(chat.router, prefix=API_PREFIX)
     app.include_router(admin.router, prefix=API_PREFIX)
     app.include_router(media.router, prefix=API_PREFIX)
+    app.include_router(payments.router, prefix=API_PREFIX)
     app.include_router(products.router, prefix=API_PREFIX)
     app.include_router(collections.router, prefix=API_PREFIX)
     app.include_router(search.router, prefix=API_PREFIX)

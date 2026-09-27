@@ -9,10 +9,11 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app import payhere
 from app.checkout_data import calculate_shipping
 from app.config import settings
 from app.models import Order, OrderItem, Product, User
-from app.schemas_orders import OrderIn, OrderItemIn
+from app.schemas_orders import OrderIn, OrderItemIn, PayHereCheckoutOut
 
 # No 0, 1, I, L or O, so references are easy to read out over the phone.
 _REFERENCE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
@@ -201,3 +202,40 @@ def get_user_order(db: Session, user: User, reference: str) -> Order | None:
         .options(selectinload(Order.items))
         .where(Order.reference == reference, Order.user_id == user.id)
     )
+
+
+def build_payhere_checkout(order: Order) -> PayHereCheckoutOut | None:
+    """The one-time PayHere checkout form for a card order, or None for any other payment method."""
+    if order.payment_method != "card" or not payhere.is_configured():
+        return None
+
+    first_name, _, last_name = order.full_name.partition(" ")
+    return PayHereCheckoutOut(
+        action=payhere.checkout_url(),
+        merchant_id=settings.payhere_merchant_id or "",
+        order_id=order.reference,
+        items=f"Order {order.reference}",
+        amount=payhere.format_amount(order.total),
+        currency="LKR",
+        hash=payhere.checkout_hash(order.reference, order.total),
+        first_name=first_name or order.full_name,
+        # PayHere requires a last name; a single-word full name gets a stand-in.
+        last_name=last_name or ".",
+        email=order.email,
+        phone=order.phone,
+        address=order.address1,
+        city=order.city,
+        country="Sri Lanka",
+        return_url=f"{settings.site_url}/checkout/success?order={order.reference}",
+        cancel_url=f"{settings.site_url}/checkout/cancel?order={order.reference}",
+        notify_url=f"{settings.api_public_url}/api/v1/payments/payhere/notify",
+    )
+
+
+def get_order_status(db: Session, reference: str) -> Order | None:
+    """Just the order's two statuses, matched only by its (unguessable, random) reference.
+
+    Used by the checkout return page, which has no session for a guest checkout to prove
+    ownership. What is exposed here is deliberately narrow: no address, phone, email or items.
+    """
+    return db.scalar(select(Order).where(Order.reference == reference))

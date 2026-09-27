@@ -26,10 +26,13 @@ export default async function AdminOrderPage({
           All orders
         </Link>
         <h1 className="mt-2 text-3xl font-bold tracking-wide uppercase">{order.reference}</h1>
-        <p className="text-muted mt-1 text-sm">
-          Placed {formatDate(order.createdAt)} &middot;{' '}
+        <p className="text-muted mt-1 flex flex-wrap items-center gap-2 text-sm">
+          <span>Placed {formatDate(order.createdAt)}</span>
           <span className="border-border rounded-sm border px-2 py-1 text-xs">
             {statusLabel(order.status)}
+          </span>
+          <span className="border-border rounded-sm border px-2 py-1 text-xs">
+            Payment: {statusLabel(order.paymentStatus)}
           </span>
         </p>
       </div>
@@ -102,10 +105,39 @@ export default async function AdminOrderPage({
             </dd>
           </div>
           <div>
-            <dt className="text-muted text-xs">Payment</dt>
+            <dt className="text-muted text-xs">Payment method</dt>
             <dd>{order.paymentMethod}</dd>
           </div>
+          <div>
+            <dt className="text-muted text-xs">Payment status</dt>
+            <dd>{statusLabel(order.paymentStatus)}</dd>
+          </div>
         </dl>
+      </section>
+
+      <section aria-labelledby="payment-history-title">
+        <h2 id="payment-history-title" className={sectionTitle}>
+          Payment history
+        </h2>
+        {order.paymentEvents.length === 0 ? (
+          <p className="text-muted text-sm">No payment events recorded yet.</p>
+        ) : (
+          <ol className="divide-border border-border divide-y border-y text-sm">
+            {order.paymentEvents.map((event, index) => (
+              <li key={`${event.createdAt}-${index}`} className="space-y-1 py-3">
+                <p>
+                  {statusLabel(event.fromStatus)} → {statusLabel(event.toStatus)}
+                  {event.method && <span className="text-muted"> &middot; {event.method}</span>}
+                </p>
+                <p className="text-muted text-xs">
+                  {event.source}
+                  {event.message && <> &middot; {event.message}</>} &middot;{' '}
+                  <time dateTime={event.createdAt}>{formatDateTime(event.createdAt)}</time>
+                </p>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
 
       <section aria-labelledby="history-title">

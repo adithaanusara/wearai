@@ -38,6 +38,7 @@ class DashboardOut(CamelModel):
 class OrderSummaryOut(CamelModel):
     reference: str
     status: str
+    payment_status: str
     email: str
     full_name: str
     total: int
@@ -58,9 +59,19 @@ class StatusHistoryOut(CamelModel):
     created_at: datetime
 
 
+class PaymentEventOut(CamelModel):
+    from_status: str
+    to_status: str
+    source: str
+    method: str | None
+    message: str | None
+    created_at: datetime
+
+
 class AdminOrderOut(OrderOut):
     history: list[StatusHistoryOut]
     allowed_next: list[str]
+    payment_events: list[PaymentEventOut]
 
 
 class AdminImageOut(CamelModel):

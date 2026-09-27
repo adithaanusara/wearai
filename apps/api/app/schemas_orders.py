@@ -158,9 +158,44 @@ class QuoteOut(CamelModel):
     total: int
 
 
+class PayHereCheckoutOut(CamelModel):
+    """What the website needs to build the auto-submitting form that sends the shopper to
+    PayHere."""
+
+    action: str
+    merchant_id: str
+    order_id: str
+    items: str
+    amount: str
+    currency: str
+    hash: str
+    first_name: str
+    last_name: str
+    email: str
+    phone: str
+    address: str
+    city: str
+    country: str
+    return_url: str
+    cancel_url: str
+    notify_url: str
+
+
+class OrderStatusOut(CamelModel):
+    """The two facts a return page needs after PayHere redirects the shopper back: nothing else,
+    since this is looked up by reference alone, with no login."""
+
+    status: str
+    payment_status: str
+
+
 class OrderOut(CamelModel):
     reference: str
     status: str
+    payment_status: str
+    # Present only on the response to placing a card order, and only once: the one-time form that
+    # sends the shopper to PayHere. Never set on a GET of an existing order.
+    payhere: PayHereCheckoutOut | None = None
     email: str
     phone: str
     full_name: str
@@ -183,6 +218,7 @@ class OrderOut(CamelModel):
         return cls(
             reference=order.reference,
             status=order.status,
+            payment_status=order.payment_status,
             email=order.email,
             phone=order.phone,
             full_name=order.full_name,
