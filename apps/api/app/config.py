@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -39,6 +40,10 @@ class Settings(BaseSettings):
     # Visitors are told apart by a salted hash of their address, so raw addresses are never stored.
     # Set this to a long random value in production.
     chat_hash_salt: str = "dev-only-change-me"
+
+    # Product images are stored here while developing (git ignores this folder). Production is
+    # meant to use a cloud bucket instead; see app/storage.py.
+    upload_dir: Path = Path(__file__).resolve().parent.parent / "uploads"
 
     session_cookie_name: str = "session"
     session_days: int = 14

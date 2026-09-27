@@ -51,7 +51,7 @@ def get_product(db: Session, product_id: str) -> Product | None:
     )
 
 
-def _lock(db: Session, product_id: str, expected_updated_at: datetime) -> Product:
+def lock_product(db: Session, product_id: str, expected_updated_at: datetime) -> Product:
     """The product, locked until the end of the transaction, if it is still as the admin saw it."""
     product = db.scalar(
         select(Product)
@@ -74,7 +74,7 @@ def edit_product(
     db: Session, *, actor: User, product_id: str, expected_updated_at: datetime, changes: dict
 ) -> Product:
     """Applies the edited fields. Nothing is written when nothing actually changed."""
-    product = _lock(db, product_id, expected_updated_at)
+    product = lock_product(db, product_id, expected_updated_at)
 
     before: dict = {}
     after: dict = {}
@@ -88,7 +88,7 @@ def edit_product(
 
     for field, value in after.items():
         setattr(product, field, value)
-    product.updated_at = _next_timestamp(product.updated_at)
+    product.updated_at = next_version(product.updated_at)
     audit.record(
         db,
         actor=actor,
@@ -104,7 +104,7 @@ def edit_product(
 def set_archived(
     db: Session, *, actor: User, product_id: str, expected_updated_at: datetime, archive: bool
 ) -> Product:
-    product = _lock(db, product_id, expected_updated_at)
+    product = lock_product(db, product_id, expected_updated_at)
     if archive == (product.archived_at is not None):
         raise AdminError(
             409,
@@ -113,7 +113,7 @@ def set_archived(
         )
 
     product.archived_at = datetime.now(UTC) if archive else None
-    product.updated_at = _next_timestamp(product.updated_at)
+    product.updated_at = next_version(product.updated_at)
     audit.record(
         db,
         actor=actor,
@@ -126,6 +126,6 @@ def set_archived(
     return product
 
 
-def _next_timestamp(previous: datetime) -> datetime:
+def next_version(previous: datetime) -> datetime:
     """Now, but always later than the previous version, so a change never keeps the same one."""
     return max(datetime.now(UTC), previous + timedelta(microseconds=1))

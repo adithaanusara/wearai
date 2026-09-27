@@ -4,9 +4,10 @@ Routes are grouped by the least role they need, and each group is tagged (`role:
 `role:admin`) so a test can check that no route was added without protection.
 """
 
+from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import (
@@ -21,11 +22,13 @@ from app.db import get_db
 from app.models import Order, Product
 from app.schemas import Page, UserOut
 from app.schemas_admin import (
+    AdminImageOut,
     AdminOrderOut,
     AdminProductOut,
     AdminUserOut,
     AuditEntryOut,
     DashboardOut,
+    ImageOrderIn,
     OrderSummaryOut,
     ProductEditIn,
     ProductVersionIn,
@@ -35,7 +38,9 @@ from app.schemas_admin import (
 )
 from app.schemas_orders import OrderOut
 from app.services import admin as admin_service
-from app.services import admin_orders, admin_products
+from app.services import admin_images, admin_orders, admin_products
+from app.services.images import MAX_BYTES
+from app.storage import ImageStorage, get_storage
 
 # The origin check comes first and covers every method, so a forged request from another site
 # cannot change anything here.
@@ -44,6 +49,7 @@ staff_routes = APIRouter(tags=["role:staff"], dependencies=[Depends(require_staf
 admin_routes = APIRouter(tags=["role:admin"], dependencies=[Depends(require_admin)])
 
 DbDep = Annotated[Session, Depends(get_db)]
+StorageDep = Annotated[ImageStorage, Depends(get_storage)]
 
 
 @staff_routes.get("/me", response_model=UserOut)
@@ -142,7 +148,7 @@ def _product_out(product: Product) -> AdminProductOut:
         price=product.price,
         compare_at_price=product.compare_at_price,
         description=product.description,
-        image=product.images[0].url if product.images else None,
+        images=[AdminImageOut(id=image.id, url=image.url) for image in product.images],
         sizes=[size.label for size in product.sizes],
         archived=product.archived_at is not None,
         updated_at=product.updated_at,
@@ -234,6 +240,68 @@ def restore_product(
             product_id=product_id,
             expected_updated_at=body.updated_at,
             archive=False,
+        ),
+    )
+
+
+@admin_routes.post("/products/{product_id}/images", response_model=AdminProductOut, status_code=201)
+def add_product_image(
+    product_id: str,
+    actor: AdminDep,
+    db: DbDep,
+    storage: StorageDep,
+    updated_at: Annotated[datetime, Form(alias="updatedAt")],
+    file: Annotated[UploadFile, File()],
+) -> AdminProductOut:
+    # One byte more than the limit is read, so an oversized file is noticed without reading it all.
+    data = file.file.read(MAX_BYTES + 1)
+    return _run_product_change(
+        db,
+        lambda: admin_images.add_image(
+            db,
+            storage,
+            actor=actor,
+            product_id=product_id,
+            expected_updated_at=updated_at,
+            data=data,
+        ),
+    )
+
+
+@admin_routes.put("/products/{product_id}/images/order", response_model=AdminProductOut)
+def reorder_product_images(
+    product_id: str, body: ImageOrderIn, actor: AdminDep, db: DbDep
+) -> AdminProductOut:
+    return _run_product_change(
+        db,
+        lambda: admin_images.reorder_images(
+            db,
+            actor=actor,
+            product_id=product_id,
+            expected_updated_at=body.updated_at,
+            image_ids=body.image_ids,
+        ),
+    )
+
+
+@admin_routes.delete("/products/{product_id}/images/{image_id}", response_model=AdminProductOut)
+def remove_product_image(
+    product_id: str,
+    image_id: int,
+    actor: AdminDep,
+    db: DbDep,
+    storage: StorageDep,
+    updated_at: Annotated[datetime, Query(alias="updatedAt")],
+) -> AdminProductOut:
+    return _run_product_change(
+        db,
+        lambda: admin_images.remove_image(
+            db,
+            storage,
+            actor=actor,
+            product_id=product_id,
+            image_id=image_id,
+            expected_updated_at=updated_at,
         ),
     )
 

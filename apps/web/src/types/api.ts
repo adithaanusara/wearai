@@ -167,7 +167,7 @@ export interface AdminProduct {
   price: number;
   compareAtPrice: number | null;
   description: string;
-  image: string | null;
+  images: { id: number; url: string }[];
   sizes: string[];
   archived: boolean;
   /** The version of the product. An edit sends it back, so a stale screen is refused. */
