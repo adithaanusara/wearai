@@ -47,6 +47,21 @@ class Settings(BaseSettings):
     upload_dir: Path = Path(__file__).resolve().parent.parent / "uploads"
     cloudinary_url: str | None = None
 
+    # Login protection, the same for every account. A rolling window, like the chat limits above:
+    # an account with this many failed attempts in the window cannot sign in, even with the right
+    # password, until enough of them age out; a success does not need to clear anything, because
+    # only *consecutive* failures (since the last success) are ever counted.
+    login_lockout_attempts: int = 5
+    login_lockout_window_seconds: int = 900
+    # However many accounts it targets, one address gets this many login attempts per window.
+    login_ip_rate_limit_requests: int = 20
+    login_ip_rate_limit_window_seconds: int = 600
+    # Registration has no account to lock, so it is only ever limited by address, and more lightly.
+    register_ip_rate_limit_requests: int = 10
+    register_ip_rate_limit_window_seconds: int = 600
+    # Set this to a long random value in production, separate from chat_hash_salt.
+    login_hash_salt: str = "dev-only-change-me"
+
     # --- Online payment (PayHere). Blank means card payment is unavailable; see app/payhere.py.
     payhere_merchant_id: str | None = None
     payhere_merchant_secret: str | None = None
