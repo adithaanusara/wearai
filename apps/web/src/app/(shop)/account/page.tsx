@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AccountOrders } from '@/components/account/AccountOrders';
 import { SignOutButton } from '@/components/account/SignOutButton';
+import { TwoFactorSettings } from '@/components/account/TwoFactorSettings';
 import { Pagination } from '@/components/collection/Pagination';
 import { Container } from '@/components/ui/Container';
 import { hasRole } from '@/lib/admin';
@@ -80,6 +81,15 @@ export default async function AccountPage({
             </div>
           </dl>
         </section>
+
+        {hasRole(user.role, 'staff') && (
+          <section aria-labelledby="two-factor-title">
+            <h2 id="two-factor-title" className={sectionTitle}>
+              Two-factor authentication
+            </h2>
+            <TwoFactorSettings user={user} />
+          </section>
+        )}
 
         <SignOutButton />
       </div>

@@ -7,6 +7,7 @@ import type {
   CheckoutOptions,
   Dashboard,
   CollectionPage,
+  LoginResult,
   Order,
   OrderRequest,
   OrderStatus,
@@ -16,6 +17,7 @@ import type {
   Quote,
   Review,
   Role,
+  TwoFactorSetup,
   User,
 } from '@/types/api';
 import type { CartItem } from '@/types/cart';
@@ -198,7 +200,18 @@ export async function getMe(headers?: AuthHeaders): Promise<User | null> {
 }
 
 export const login = (email: string, password: string) =>
-  request<User>('/auth/login', { method: 'POST', body: { email, password } });
+  request<LoginResult>('/auth/login', { method: 'POST', body: { email, password } });
+
+export const verifyTwoFactor = (pendingToken: string, code: string) =>
+  request<User>('/auth/2fa/verify', { method: 'POST', body: { pendingToken, code } });
+
+export const setUpTwoFactor = () => request<TwoFactorSetup>('/auth/2fa/setup', { method: 'POST' });
+
+export const confirmTwoFactor = (code: string) =>
+  request<{ recoveryCodes: string[] }>('/auth/2fa/confirm', { method: 'POST', body: { code } });
+
+export const disableTwoFactor = (password: string, code: string) =>
+  request<void>('/auth/2fa/disable', { method: 'POST', body: { password, code } });
 
 export const register = (name: string, email: string, password: string) =>
   request<User>('/auth/register', { method: 'POST', body: { name, email, password } });

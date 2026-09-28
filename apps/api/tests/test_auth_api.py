@@ -42,6 +42,7 @@ def test_register_creates_the_account_and_signs_in(client: TestClient) -> None:
         "name": "Nimali Perera",
         "email": EMAIL,
         "role": "customer",
+        "twoFactorEnabled": False,
     }
     assert client.get("/api/v1/auth/me").json()["email"] == EMAIL
 
@@ -323,6 +324,7 @@ def test_a_signed_in_visitor_gets_their_user(client: TestClient) -> None:
         "name": "Nimali Perera",
         "email": EMAIL,
         "role": "customer",
+        "twoFactorEnabled": False,
     }
     assert "password" not in str(body).lower()
 
