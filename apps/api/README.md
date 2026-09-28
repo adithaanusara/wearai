@@ -49,7 +49,8 @@ Pagination uses `page` and `pageSize` (default 24, at most 100). Unknown slugs r
 - A sign-in sets a random token in an `HttpOnly`, `SameSite=Lax` cookie (`Secure` when `COOKIE_SECURE=true`). The database stores only the token's SHA-256 hash, sessions last 14 days, and logout deletes them.
 - Browser POSTs whose `Origin` is not in `CORS_ORIGINS` are rejected with 403.
 - Validation errors never echo the submitted values, so passwords do not appear in responses.
-- Not covered yet: rate limiting and lockout for repeated failed logins (do this at the hosting layer or with a shared store such as Redis), email verification, and password reset.
+- **Repeated failed logins are limited**, the same for every account. An account with 5 failed attempts in 15 minutes (`LOGIN_LOCKOUT_ATTEMPTS`, `LOGIN_LOCKOUT_WINDOW_SECONDS`) cannot sign in, even with the right password, until enough of them age out of that rolling window; a successful sign-in resets it (only _consecutive_ failures since the last success ever count, so one success clears an earlier run of failures without deleting anything). One address gets 20 login attempts per 10 minutes across every account it tries (`LOGIN_IP_RATE_LIMIT_REQUESTS`, `LOGIN_IP_RATE_LIMIT_WINDOW_SECONDS`) and 10 registrations per 10 minutes (`REGISTER_IP_RATE_LIMIT_REQUESTS`, `REGISTER_IP_RATE_LIMIT_WINDOW_SECONDS`). Both send 429 with the same message and a `Retry-After` header either way, so the response never says which of the two limits (if either) was the reason, or whether an email exists. Addresses are told apart by a salted hash (`LOGIN_HASH_SALT`, set it to a long random value in production, separate from `CHAT_HASH_SALT`), never stored raw; behind a proxy, configure the server to pass the real client address on (for example `uvicorn --proxy-headers`).
+- Not covered yet: 2FA, email verification, and password reset.
 
 Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
 
