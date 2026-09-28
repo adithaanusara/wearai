@@ -50,9 +50,21 @@ Pagination uses `page` and `pageSize` (default 24, at most 100). Unknown slugs r
 - Browser POSTs whose `Origin` is not in `CORS_ORIGINS` are rejected with 403.
 - Validation errors never echo the submitted values, so passwords do not appear in responses.
 - **Repeated failed logins are limited**, the same for every account. An account with 5 failed attempts in 15 minutes (`LOGIN_LOCKOUT_ATTEMPTS`, `LOGIN_LOCKOUT_WINDOW_SECONDS`) cannot sign in, even with the right password, until enough of them age out of that rolling window; a successful sign-in resets it (only _consecutive_ failures since the last success ever count, so one success clears an earlier run of failures without deleting anything). One address gets 20 login attempts per 10 minutes across every account it tries (`LOGIN_IP_RATE_LIMIT_REQUESTS`, `LOGIN_IP_RATE_LIMIT_WINDOW_SECONDS`) and 10 registrations per 10 minutes (`REGISTER_IP_RATE_LIMIT_REQUESTS`, `REGISTER_IP_RATE_LIMIT_WINDOW_SECONDS`). Both send 429 with the same message and a `Retry-After` header either way, so the response never says which of the two limits (if either) was the reason, or whether an email exists. Addresses are told apart by a salted hash (`LOGIN_HASH_SALT`, set it to a long random value in production, separate from `CHAT_HASH_SALT`), never stored raw; behind a proxy, configure the server to pass the real client address on (for example `uvicorn --proxy-headers`).
-- Not covered yet: 2FA, email verification, and password reset.
+- Not covered yet: email verification and password reset.
 
 Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
+
+## Two-factor authentication
+
+Opt-in, for staff and admin accounts (nothing stops a customer from turning it on too through the same routes; the website's account page just does not offer it to one). TOTP, so it works with any standard authenticator app (Google Authenticator, Authy, 1Password, ...); there is no SMS or email option.
+
+- **Set up:** `POST /auth/2fa/setup` (signed in) returns a secret and a `provisioningUri` for a QR code. Nothing is turned on yet — that only happens once `POST /auth/2fa/confirm` is sent a real code from that setup, so a secret nobody actually captured can never lock an account out. Confirming returns 10 one-time recovery codes, shown once; each is hashed at rest, like a password.
+- **Signing in:** once an account has 2FA on, a correct password no longer starts a session. `POST /auth/login` instead returns `{ "twoFactorRequired": true, "pendingToken": "..." }`; `POST /auth/2fa/verify` with that token and a code (or a recovery code) is what actually signs in. The pending token is single-use and expires after `TWOFA_PENDING_LOGIN_SECONDS` (5 minutes); an account with none of this turned on is unaffected and signs in exactly as before.
+- **Wrong codes are limited too**, the same way as a wrong password: 5 wrong codes in 15 minutes (`TWOFA_LOCKOUT_ATTEMPTS`, `TWOFA_LOCKOUT_WINDOW_SECONDS`) locks that account out of the code step, whether at login or at `/2fa/confirm`. There is no separate address check here: reaching this step already needed the right password, which narrows things down far more than an address would.
+- **The secret is encrypted, not hashed**, in `TOTP_ENCRYPTION_KEY` (a Fernet key — `Fernet.generate_key()`): verifying a code needs the real value back, unlike a password. Leave it blank to disable 2FA everywhere (setup is refused with 503); this is not something to change once anyone has turned 2FA on, since that account's secret can then no longer be decrypted.
+- **Disabling** (`POST /auth/2fa/disable`) needs the password and a valid code again, not just a signed-in session, so a stolen, already-open browser tab cannot casually turn off someone else's protection. It does not end the current session (nothing left to protect against, at that point).
+- Only the command line can reset someone else's 2FA in an emergency (there is no reset button in the admin area), the same as the first admin.
+- Not covered yet: enforcing 2FA for every staff/admin account (opt-in only, for now).
 
 ## Orders
 

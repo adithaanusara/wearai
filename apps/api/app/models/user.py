@@ -25,3 +25,10 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
+
+    # Two-factor authentication (opt-in, staff and admin only from the website; nothing here stops
+    # a customer row from having it too, but nothing offers it to one). The secret is encrypted,
+    # not hashed: verifying a code needs it back, unlike a password. Set only once confirmed with a
+    # real code, so a secret nobody actually captured can never lock an account out.
+    totp_secret_encrypted: Mapped[str | None] = mapped_column(String(255))
+    totp_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -156,9 +156,39 @@ class UserOut(CamelModel):
     name: str
     email: str
     role: str
+    two_factor_enabled: bool = False
 
 
 class SessionOut(CamelModel):
     """Who is signed in. A visitor has no user, which is a normal answer, not an error."""
 
     user: UserOut | None
+
+
+class TwoFactorRequiredOut(CamelModel):
+    """What /auth/login returns instead of a user when the password was right but a code is still
+    needed. No session exists yet: `pendingToken` proves only that the password was checked."""
+
+    two_factor_required: bool = True
+    pending_token: str
+
+
+class TwoFactorSetupOut(CamelModel):
+    secret: str
+    provisioning_uri: str
+
+
+class TwoFactorCodeIn(CamelModel):
+    code: str = Field(min_length=1, max_length=20)
+
+
+class TwoFactorConfirmOut(CamelModel):
+    recovery_codes: list[str]
+
+
+class TwoFactorVerifyIn(TwoFactorCodeIn):
+    pending_token: str = Field(min_length=1, max_length=100)
+
+
+class TwoFactorDisableIn(TwoFactorCodeIn):
+    password: str = Field(min_length=1, max_length=security.MAX_PASSWORD_LENGTH)

@@ -49,9 +49,10 @@ def _retry_after(oldest_in_window: datetime, window_seconds: int, now: datetime)
 
 
 def _consecutive_failures_since_last_success(
-    db: Session, email: str, window_start: datetime
+    db: Session, kind: str, email: str, window_start: datetime
 ) -> list[datetime]:
-    """Failed attempts for this email, newest first, stopping at the most recent success.
+    """Failed attempts of this kind for this email, newest first, stopping at the most recent
+    success.
 
     A success needs nothing else to "reset the count": once one is reached, nothing before it is
     ever counted again.
@@ -59,7 +60,7 @@ def _consecutive_failures_since_last_success(
     recent = db.scalars(
         select(AuthAttempt)
         .where(
-            AuthAttempt.kind == "login",
+            AuthAttempt.kind == kind,
             AuthAttempt.email == email,
             AuthAttempt.created_at > window_start,
         )
@@ -96,13 +97,29 @@ def check_login_allowed(db: Session, *, email: str, ip: str) -> None:
         )
 
     lockout_window_start = now - timedelta(seconds=settings.login_lockout_window_seconds)
-    failures = _consecutive_failures_since_last_success(db, email, lockout_window_start)
+    failures = _consecutive_failures_since_last_success(db, "login", email, lockout_window_start)
     if len(failures) >= settings.login_lockout_attempts:
         # failures[] is newest first; the one that tipped the count over the limit is the oldest
         # of the ones counted, and it is that one ageing out of the window that ends the lockout.
         oldest_counted = failures[settings.login_lockout_attempts - 1]
         raise TooManyAttemptsError(
             _retry_after(oldest_counted, settings.login_lockout_window_seconds, now)
+        )
+
+
+def check_twofa_allowed(db: Session, *, email: str) -> None:
+    """Raises `TooManyAttemptsError` for too many wrong codes for this account.
+
+    Unlike `check_login_allowed`, there is no separate address check: reaching this step already
+    needed the right password, which narrows things down far more than an address ever could.
+    """
+    now = _now()
+    window_start = now - timedelta(seconds=settings.twofa_lockout_window_seconds)
+    failures = _consecutive_failures_since_last_success(db, "2fa", email, window_start)
+    if len(failures) >= settings.twofa_lockout_attempts:
+        oldest_counted = failures[settings.twofa_lockout_attempts - 1]
+        raise TooManyAttemptsError(
+            _retry_after(oldest_counted, settings.twofa_lockout_window_seconds, now)
         )
 
 

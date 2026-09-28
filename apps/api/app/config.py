@@ -62,6 +62,18 @@ class Settings(BaseSettings):
     # Set this to a long random value in production, separate from chat_hash_salt.
     login_hash_salt: str = "dev-only-change-me"
 
+    # --- Two-factor authentication (opt-in, staff and admin). See app/services/twofa.py.
+    # A Fernet key (Fernet.generate_key()). Blank disables 2FA everywhere: setup is refused, and an
+    # account that already had it confirmed could no longer be verified, so this is not something
+    # to change once anyone has turned 2FA on.
+    totp_encryption_key: str | None = None
+    twofa_pending_login_seconds: int = 300
+    recovery_code_count: int = 10
+    # The same shape as the login lockout above, but for a wrong 2FA code once the password was
+    # already right.
+    twofa_lockout_attempts: int = 5
+    twofa_lockout_window_seconds: int = 900
+
     # --- Online payment (PayHere). Blank means card payment is unavailable; see app/payhere.py.
     payhere_merchant_id: str | None = None
     payhere_merchant_secret: str | None = None

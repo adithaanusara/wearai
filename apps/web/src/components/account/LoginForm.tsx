@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
 import { PasswordField } from '@/components/account/PasswordField';
+import { TwoFactorStep } from '@/components/account/TwoFactorStep';
 import { SESSION_QUERY_KEY } from '@/components/account/useSession';
 import { Field } from '@/components/ui/Field';
 import { ApiError, login } from '@/lib/api';
 import { fieldErrors, firstField } from '@/lib/form-errors';
+import { needsTwoFactor } from '@/types/api';
 
 const FIELDS = ['email', 'password'] as const;
 type LoginField = (typeof FIELDS)[number];
@@ -25,6 +27,7 @@ export function LoginForm() {
   const [errors, setErrors] = useState<Partial<Record<LoginField, string>>>({});
   const [banner, setBanner] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
 
   function update(name: LoginField, value: string) {
     setValues((current) => ({ ...current, [name]: value }));
@@ -40,8 +43,12 @@ export function LoginForm() {
     setErrors({});
 
     try {
-      const user = await login(values.email, values.password);
-      queryClient.setQueryData(SESSION_QUERY_KEY, user);
+      const result = await login(values.email, values.password);
+      if (needsTwoFactor(result)) {
+        setPendingToken(result.pendingToken);
+        return;
+      }
+      queryClient.setQueryData(SESSION_QUERY_KEY, result);
       router.replace('/account');
       router.refresh();
     } catch (error) {
@@ -61,6 +68,10 @@ export function LoginForm() {
       submitting.current = false;
       setBusy(false);
     }
+  }
+
+  if (pendingToken) {
+    return <TwoFactorStep pendingToken={pendingToken} onBack={() => setPendingToken(null)} />;
   }
 
   return (

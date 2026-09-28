@@ -140,6 +140,25 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  twoFactorEnabled: boolean;
+}
+
+/** What /auth/login returns instead of a user when the password was right but a code is still
+ * needed. There is no session yet. */
+export interface TwoFactorRequired {
+  twoFactorRequired: true;
+  pendingToken: string;
+}
+
+export type LoginResult = User | TwoFactorRequired;
+
+export function needsTwoFactor(result: LoginResult): result is TwoFactorRequired {
+  return 'twoFactorRequired' in result;
+}
+
+export interface TwoFactorSetup {
+  secret: string;
+  provisioningUri: string;
 }
 
 /** A user as an admin sees them in the users list. */
