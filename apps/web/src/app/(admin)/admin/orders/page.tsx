@@ -119,6 +119,11 @@ export default async function AdminOrdersPage({
                     <span className="border-border rounded-sm border px-2 py-1 text-xs">
                       {statusLabel(order.status)}
                     </span>
+                    {order.paymentStatus !== 'unpaid' && (
+                      <span className="text-muted mt-1 block text-xs">
+                        Payment: {statusLabel(order.paymentStatus)}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 text-right whitespace-nowrap">{formatPrice(order.total)}</td>
                 </tr>

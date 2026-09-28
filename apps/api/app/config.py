@@ -45,6 +45,15 @@ class Settings(BaseSettings):
     # meant to use a cloud bucket instead; see app/storage.py.
     upload_dir: Path = Path(__file__).resolve().parent.parent / "uploads"
 
+    # --- Online payment (PayHere). Blank means card payment is unavailable; see app/payhere.py.
+    payhere_merchant_id: str | None = None
+    payhere_merchant_secret: str | None = None
+    payhere_mode: Literal["sandbox", "live"] = "sandbox"
+    # Where PayHere sends the shopper back and where it calls the server. Must be reachable from
+    # the internet for the notify callback, so it needs a public URL (or a tunnel) even in dev.
+    site_url: str = "http://localhost:3000"
+    api_public_url: str = "http://localhost:8000"
+
     session_cookie_name: str = "session"
     session_days: int = 14
     # Set to true in production so the cookie is only sent over HTTPS.

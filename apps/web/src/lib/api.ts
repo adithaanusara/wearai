@@ -9,6 +9,7 @@ import type {
   CollectionPage,
   Order,
   OrderRequest,
+  OrderStatus,
   OrderSummary,
   Page,
   ProductDetail,
@@ -307,3 +308,6 @@ export const reorderProductImages = (id: string, updatedAt: string, imageIds: nu
     method: 'PUT',
     body: { updatedAt, imageIds },
   });
+
+export const getOrderStatus = (reference: string) =>
+  request<OrderStatus>(`/orders/${segment(reference)}/status`);

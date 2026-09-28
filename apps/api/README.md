@@ -61,7 +61,19 @@ Set `COOKIE_SECURE=true` in production, where the site is served over HTTPS.
 - Send an `Idempotency-Key` header (8 to 64 letters, digits, `-` or `_`) so a double click or retry returns the original order instead of creating a second one. Reusing a key with different data returns 409 with code `idempotency_conflict`.
 - Reading someone else's order returns the same 404 as a missing one, so references cannot be probed.
 - Validation matches the website (Sri Lankan mobile numbers, 5-digit postal codes, districts within their province) and only accepts ASCII digits.
-- Not covered yet: stock levels, payment processing, order emails and guest order lookup. Staff manage orders in the admin area (see below).
+- Not covered yet: stock levels, order emails and guest order lookup. Staff manage orders in the admin area (see below).
+
+## Payments (PayHere)
+
+`paymentMethod: "card"` pays through [PayHere](https://www.payhere.lk). `cod` and `bank-transfer` are unaffected and never touch this.
+
+- **Set up:** put `PAYHERE_MERCHANT_ID` and `PAYHERE_MERCHANT_SECRET` in `.env` (never in `.env.example`, which is committed) and leave `PAYHERE_MODE=sandbox` until going live. Also set `SITE_URL` and `API_PUBLIC_URL` to whatever the website and API are actually reachable at (in production, real public URLs; PayHere's notification needs `API_PUBLIC_URL` to be reachable from the internet, so on a machine with no public address, that part cannot be exercised end to end). Leaving the PayHere settings blank disables card payment: placing a card order then answers 422 `payment_method_unavailable`, and the checkout page should offer another method.
+- **How it works:** placing a card order creates it as `unpaid` and returns a one-time, server-signed set of fields (`payhere` on the response, only on that one response). The website submits those directly to PayHere's hosted page, so card details never pass through this site. A `hash`, made from the merchant secret and the real total, is what stops the browser from setting its own amount.
+- **The order's payment is confirmed by PayHere calling back**, at `POST /payments/payhere/notify`, not by the browser being redirected back. That request is verified by its own signature (same merchant secret, a different formula) before anything changes; a request with a wrong or missing signature updates nothing and still answers 200 (so PayHere does not retry it forever). This route is deliberately not behind the origin check other routes use: PayHere calls it directly, with no browser involved.
+- `payment_status` (`unpaid`, `pending`, `paid`, `failed`) is separate from the delivery `status`; a `paid` order does not go back to `pending` or `unpaid` on a later or repeated notification. Every notification is recorded in `payment_events`, alongside the delivery status history in the admin area.
+- The order row is locked while a notification is applied, so two notifications for the same order (a genuine possibility: PayHere can call more than once) cannot both apply as a real change; the second is recorded as a replay.
+- `GET /orders/{reference}/status` is the one public, unauthenticated route in this API: it exists so a guest checkout, which has no session, can poll for the outcome after being sent back from PayHere. It reveals only the two statuses, nothing else about the order, and the reference is an unguessable, randomly generated token, never a sequential id.
+- Not covered yet: refunds, saved cards, subscriptions, and any provider other than PayHere.
 
 ## Admin area
 

@@ -662,3 +662,35 @@ def test_a_product_that_was_ordered_cannot_be_deleted(client: TestClient, db: Se
 
     with pytest.raises(IntegrityError):
         db.flush()
+
+
+# ---------- payment status polling (used by the checkout return page, no login) ----------
+
+
+def test_the_status_route_needs_only_the_reference(client: TestClient) -> None:
+    reference = place_order(client).json()["reference"]
+
+    response = client.get(f"{ORDERS}/{reference}/status")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "pending", "paymentStatus": "unpaid"}
+
+
+def test_the_status_route_reveals_nothing_else(client: TestClient) -> None:
+    reference = place_order(client).json()["reference"]
+
+    body = client.get(f"{ORDERS}/{reference}/status").json()
+
+    assert body.keys() == {"status", "paymentStatus"}
+
+
+def test_the_status_route_works_for_a_guest_who_never_signed_in(client: TestClient) -> None:
+    reference = place_order(TestClient(app)).json()["reference"]
+
+    response = TestClient(app).get(f"{ORDERS}/{reference}/status")
+
+    assert response.status_code == 200
+
+
+def test_an_unknown_reference_is_a_404(client: TestClient) -> None:
+    assert client.get(f"{ORDERS}/WA-NOSUCH1/status").status_code == 404
