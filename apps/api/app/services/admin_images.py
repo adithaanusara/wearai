@@ -10,7 +10,7 @@ from app.models import Product, ProductImage, User
 from app.services import audit, images
 from app.services.admin import AdminError
 from app.services.admin_products import lock_product, next_version
-from app.storage import ImageStorage, stored_name
+from app.storage import ImageStorage
 
 MAX_IMAGES = 8
 
@@ -89,11 +89,11 @@ def remove_image(
 
     # The file goes only after the database change is safe. If this fails, an unused file is left
     # behind, which is harmless; the reverse (a row with no file) would be a broken picture.
-    name = stored_name(url)
+    name = storage.name_for(url)
     if name is not None:
         try:
             storage.delete(name)
-        except OSError:
+        except Exception:  # noqa: BLE001 -- either backend's own failure is equally harmless here
             pass
     return product
 

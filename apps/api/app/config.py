@@ -41,9 +41,11 @@ class Settings(BaseSettings):
     # Set this to a long random value in production.
     chat_hash_salt: str = "dev-only-change-me"
 
-    # Product images are stored here while developing (git ignores this folder). Production is
-    # meant to use a cloud bucket instead; see app/storage.py.
+    # Product images. "local" keeps files in `upload_dir` (git ignores it), for development.
+    # "cloudinary" needs `cloudinary_url` too, and is meant for production. See app/storage.py.
+    image_storage: Literal["local", "cloudinary"] = "local"
     upload_dir: Path = Path(__file__).resolve().parent.parent / "uploads"
+    cloudinary_url: str | None = None
 
     # --- Online payment (PayHere). Blank means card payment is unavailable; see app/payhere.py.
     payhere_merchant_id: str | None = None
