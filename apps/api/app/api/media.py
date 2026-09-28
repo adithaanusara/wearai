@@ -10,13 +10,18 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
-from app.storage import CONTENT_TYPES, LocalStorage, get_storage
+from app.storage import CONTENT_TYPES, ImageStorage, LocalStorage, get_storage
 
 router = APIRouter(tags=["media"])
 
 
 @router.get("/media/{name}")
-def get_media(name: str, storage: Annotated[LocalStorage, Depends(get_storage)]) -> FileResponse:
+def get_media(name: str, storage: Annotated[ImageStorage, Depends(get_storage)]) -> FileResponse:
+    # This route only ever serves local files. With Cloudinary configured, every image's URL
+    # points straight at Cloudinary instead, and nothing new is ever written here, so a request
+    # here is either for an image kept from before a switch, or is not one of ours at all.
+    if not isinstance(storage, LocalStorage):
+        raise HTTPException(status_code=404, detail="Not found")
     path = storage.path_for(name)
     if path is None or not path.is_file():
         raise HTTPException(status_code=404, detail="Not found")

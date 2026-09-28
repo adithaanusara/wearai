@@ -15,6 +15,7 @@ dependencies = [
     "anthropic>=1,<2",
     "pillow>=11,<13",
     "python-multipart>=0.0.20,<1",
+    "cloudinary>=1.40,<2",
 ]
 
 [project.optional-dependencies]
@@ -29,7 +30,10 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["live: calls the real Anthropic API and costs money; opt in with RUN_LIVE_CHAT_TESTS=1"]
+markers = [
+    "live: calls the real Anthropic API and costs money; opt in with RUN_LIVE_CHAT_TESTS=1",
+    "live_cloudinary: calls the real Cloudinary API; opt in with RUN_LIVE_CLOUDINARY_TESTS=1",
+]
 
 [tool.ruff]
 line-length = 100
