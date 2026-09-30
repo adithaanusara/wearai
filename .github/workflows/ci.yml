@@ -8,6 +8,10 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      # Only used to satisfy next.config.ts's build-time check; this build never makes a real
+      # request, so the value just has to be present, not reachable.
+      API_URL: http://ci-placeholder:8000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
