@@ -13,7 +13,10 @@
       "is_new": true,
       "is_best_seller": false,
       "description": "A soft, breathable tee made for training and everyday wear.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1610502778270-c5c6f4c7d575?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1759572095384-1a7e646d0d4f?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["XS", "S", "M", "L"],
       "details": ["Lightweight cotton-blend fabric", "True-to-size fit", "Machine washable"]
     },
@@ -30,7 +33,10 @@
       "is_new": true,
       "is_best_seller": false,
       "description": "A soft, breathable tee made for training and everyday wear.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1651761179569-4ba2aa054997?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1778671394516-8270eac13c42?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["XS", "S", "M", "L"],
       "details": ["Lightweight cotton-blend fabric", "True-to-size fit", "Machine washable"]
     },
@@ -47,7 +53,10 @@
       "is_new": true,
       "is_best_seller": true,
       "description": "Stretch fabric that moves with you, from the gym to the street.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1762331655528-4af4bccf7c62?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1706029831374-e236f69cbe8b?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["XS", "S", "M", "L", "XL"],
       "details": ["Four-way stretch", "High-rise waistband", "Squat-proof fabric"]
     },
@@ -64,7 +73,10 @@
       "is_new": true,
       "is_best_seller": false,
       "description": "Stretch fabric that moves with you, from the gym to the street.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1626026397008-3316047db4fc?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1612310480700-e64c5c42dae7?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["XS", "S", "M", "L", "XL"],
       "details": ["Four-way stretch", "High-rise waistband", "Squat-proof fabric"]
     },
@@ -81,7 +93,10 @@
       "is_new": false,
       "is_best_seller": true,
       "description": "A heavyweight hoodie with a clean, relaxed silhouette.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1620799140188-3b2a02fd9a77?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1688111421205-a0a85415b224?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["S", "M", "L"],
       "details": [
         "Brushed fleece lining",
@@ -102,7 +117,10 @@
       "is_new": false,
       "is_best_seller": false,
       "description": "Lightweight training shorts built for movement.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1649345946706-afbf86eee046?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1789110519888-758d7ab3908e?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["XS", "S", "M", "L"],
       "details": ["Quick-dry fabric", "Elastic drawcord waist", "Side pockets"]
     },
@@ -119,7 +137,10 @@
       "is_new": true,
       "is_best_seller": false,
       "description": "Stretch fabric that moves with you, from the gym to the street.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1597299001669-6454fec8ac25?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1643834068973-903e3c260269?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["S", "M", "L", "XL"],
       "details": ["Four-way stretch", "High-rise waistband", "Squat-proof fabric"]
     },
@@ -136,7 +157,10 @@
       "is_new": true,
       "is_best_seller": true,
       "description": "A soft, breathable tee made for training and everyday wear.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["S", "M", "L", "XL"],
       "details": ["Lightweight cotton-blend fabric", "True-to-size fit", "Machine washable"]
     },
@@ -153,7 +177,10 @@
       "is_new": false,
       "is_best_seller": false,
       "description": "Lightweight training shorts built for movement.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1600878585887-c2b9530999a1?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1579758682665-53a1a614eea6?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["S", "M", "L", "XL"],
       "details": ["Quick-dry fabric", "Elastic drawcord waist", "Side pockets"]
     },
@@ -170,7 +197,10 @@
       "is_new": true,
       "is_best_seller": false,
       "description": "A heavyweight hoodie with a clean, relaxed silhouette.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1677538537484-324385aff147?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["M", "L", "XL"],
       "details": [
         "Brushed fleece lining",
@@ -191,7 +221,10 @@
       "is_new": true,
       "is_best_seller": false,
       "description": "A heavyweight hoodie with a clean, relaxed silhouette.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1673092147872-5ddb03194341?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1615320876716-0fc796a5010f?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["M", "L", "XL"],
       "details": [
         "Brushed fleece lining",
@@ -212,7 +245,10 @@
       "is_new": false,
       "is_best_seller": true,
       "description": "Tapered joggers for rest days and training warm-ups.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1789110854262-ec66f0648ec7?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["S", "M", "L", "XL"],
       "details": ["Tapered leg", "Brushed fleece interior", "Zip pocket"]
     },
@@ -229,7 +265,10 @@
       "is_new": false,
       "is_best_seller": false,
       "description": "A soft, breathable tee made for training and everyday wear.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1571455786673-9d9d6c194f90?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1654570818480-54524bf0186b?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["S", "M", "L", "XL"],
       "details": ["Lightweight cotton-blend fabric", "True-to-size fit", "Machine washable"]
     },
@@ -246,7 +285,10 @@
       "is_new": true,
       "is_best_seller": true,
       "description": "A roomy bag for gym kit and weekend trips.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1699319656128-6e353d6b9c7c?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1579556397147-48e5ffa85b84?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["One Size"],
       "details": ["Water-resistant fabric", "Separate shoe compartment", "Padded shoulder strap"]
     },
@@ -263,7 +305,10 @@
       "is_new": false,
       "is_best_seller": false,
       "description": "A low-profile cap for everyday wear.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1737666636073-f15d9762cf83?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1542529727-24cb357c57d2?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["One Size"],
       "details": ["Adjustable strap", "Breathable cotton twill", "One size fits most"]
     },
@@ -280,7 +325,10 @@
       "is_new": false,
       "is_best_seller": false,
       "description": "Cushioned crew socks in a pack of three.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1589895868481-e2ffe351cccb?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1589895868947-b51095d437f3?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["One Size"],
       "details": ["Cotton-blend", "Arch support", "Machine washable"]
     },
@@ -297,7 +345,10 @@
       "is_new": false,
       "is_best_seller": false,
       "description": "An insulated bottle that keeps drinks cold for 24 hours.",
-      "images": ["/images/placeholder.svg", "/images/placeholder-alt.svg"],
+      "images": [
+        "https://images.unsplash.com/photo-1598410924570-6e37b6c54fe6?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1624469786827-13be4e09a992?auto=format&fit=crop&w=1200&q=80"
+      ],
       "sizes": ["One Size"],
       "details": ["Double-wall stainless steel", "Leak-proof lid", "750 ml"]
     }
