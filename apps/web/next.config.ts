@@ -13,6 +13,15 @@ if (!apiUrl) {
 }
 
 const nextConfig: NextConfig = {
+  images: {
+    // next/image only optimises remote images from hosts listed here and answers 400 for the
+    // rest. Unsplash serves the catalogue photos, sized through its query string; Cloudinary
+    // serves admin uploads in production, at a fixed URL with no query string.
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com', port: '', pathname: '/photo-*' },
+      { protocol: 'https', hostname: 'res.cloudinary.com', port: '', pathname: '/**', search: '' },
+    ],
+  },
   async rewrites() {
     // The browser talks only to this site; /api/* is passed on to the backend. That keeps the
     // session cookie same-origin and avoids CORS.
