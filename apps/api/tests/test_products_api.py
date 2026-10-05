@@ -31,7 +31,8 @@ def test_json_uses_camel_case_matching_the_web_types(client: TestClient) -> None
 
     assert {"styleId", "compareAtPrice", "isNew", "isBestSeller"} <= product.keys()
     assert "style_id" not in product
-    assert product["images"] == ["/images/placeholder.svg", "/images/placeholder-alt.svg"]
+    assert len(product["images"]) == 2
+    assert all(url.startswith("https://images.unsplash.com/") for url in product["images"])
     assert product["sizes"] == ["XS", "S", "M", "L"]
 
 
