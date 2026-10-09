@@ -1,3 +1,5 @@
+import { unsplash } from '@/data/photos';
+
 export interface NavLink {
   label: string;
   href: string;
@@ -19,8 +21,6 @@ export interface NavItem extends NavLink {
   menu?: NavMenu;
 }
 
-const placeholder = '/images/placeholder.svg';
-
 export const mainNav: NavItem[] = [
   {
     label: 'Women',
@@ -38,9 +38,21 @@ export const mainNav: NavItem[] = [
         { label: 'Shorts', href: '/collections/women-shorts' },
       ],
       tiles: [
-        { title: 'New Arrivals', href: '/collections/women-new', image: placeholder },
-        { title: 'Leggings', href: '/collections/women-leggings', image: placeholder },
-        { title: 'Hoodies', href: '/collections/women-hoodies', image: placeholder },
+        {
+          title: 'New Arrivals',
+          href: '/collections/women-new',
+          image: unsplash('1643834068973-903e3c260269'),
+        },
+        {
+          title: 'Leggings',
+          href: '/collections/women-leggings',
+          image: unsplash('1762331655528-4af4bccf7c62'),
+        },
+        {
+          title: 'Hoodies',
+          href: '/collections/women-hoodies',
+          image: unsplash('1620799140188-3b2a02fd9a77'),
+        },
       ],
     },
   },
@@ -60,9 +72,21 @@ export const mainNav: NavItem[] = [
         { label: 'Joggers', href: '/collections/men-joggers' },
       ],
       tiles: [
-        { title: 'New Arrivals', href: '/collections/men-new', image: placeholder },
-        { title: 'T-Shirts', href: '/collections/men-t-shirts', image: placeholder },
-        { title: 'Joggers', href: '/collections/men-joggers', image: placeholder },
+        {
+          title: 'New Arrivals',
+          href: '/collections/men-new',
+          image: unsplash('1677538537484-324385aff147'),
+        },
+        {
+          title: 'T-Shirts',
+          href: '/collections/men-t-shirts',
+          image: unsplash('1571455786673-9d9d6c194f90'),
+        },
+        {
+          title: 'Joggers',
+          href: '/collections/men-joggers',
+          image: unsplash('1506629082955-511b1aa562c8'),
+        },
       ],
     },
   },
@@ -81,8 +105,8 @@ export const mainNav: NavItem[] = [
         { label: 'Bottles', href: '/collections/bottles' },
       ],
       tiles: [
-        { title: 'Bags', href: '/collections/bags', image: placeholder },
-        { title: 'Caps', href: '/collections/caps', image: placeholder },
+        { title: 'Bags', href: '/collections/bags', image: unsplash('1699319656128-6e353d6b9c7c') },
+        { title: 'Caps', href: '/collections/caps', image: unsplash('1737666636073-f15d9762cf83') },
       ],
     },
   },
