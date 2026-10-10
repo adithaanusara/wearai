@@ -2,6 +2,10 @@ export const siteConfig = {
   name: 'WEARAI',
   description: 'Streetwear and activewear store.',
   currency: 'LKR',
+  developer: {
+    name: 'aditha.me',
+    url: 'https://aditha.me',
+  },
   // Placeholder details: replace with the real ones before launch.
   contact: {
     email: 'support@example.com',

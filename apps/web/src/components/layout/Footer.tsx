@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { DeveloperCredit } from '@/components/layout/DeveloperCredit';
 import { Container } from '@/components/ui/Container';
 import { FacebookIcon, InstagramIcon, TikTokIcon, YouTubeIcon } from '@/components/ui/icons';
 import { siteConfig } from '@/config/site';
@@ -57,8 +58,11 @@ export function Footer() {
       </Container>
 
       <div className="border-dark-2 border-t">
-        <Container className="py-6 text-xs opacity-80">
-          &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
+        <Container className="flex flex-col gap-x-6 gap-y-2 py-6 text-xs opacity-80 sm:flex-row">
+          <p>
+            &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
+          </p>
+          <DeveloperCredit />
         </Container>
       </div>
     </footer>
