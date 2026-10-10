@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { DeveloperCredit } from '@/components/layout/DeveloperCredit';
 import { Container } from '@/components/ui/Container';
 import { siteConfig } from '@/config/site';
 
@@ -21,8 +22,11 @@ export function CheckoutFrame({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="border-border border-t">
-        <Container className="text-muted py-6 text-xs">
-          &copy; {new Date().getFullYear()} {siteConfig.name}
+        <Container className="text-muted flex flex-col gap-x-6 gap-y-2 py-6 text-xs sm:flex-row">
+          <p>
+            &copy; {new Date().getFullYear()} {siteConfig.name}
+          </p>
+          <DeveloperCredit />
         </Container>
       </footer>
     </>
