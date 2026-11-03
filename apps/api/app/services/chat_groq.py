@@ -50,7 +50,36 @@ class GroqGateway:
             log = logger.error if status in (400, 401, 403, 404) else logger.warning
             log("chat provider error: %s status=%s", type(error).__name__, status)
             raise ChatUnavailableError from error
-        return from_groq_response(completion)
+        return from_groq_response(completion, _optional_fields(params["tools"]))
+
+
+def _optional_fields(tools: list[dict[str, Any]]) -> dict[str, set[str]]:
+    return {
+        tool["name"]: set(tool["input_schema"].get("properties", {}))
+        - set(tool["input_schema"].get("required", []))
+        for tool in tools
+    }
+
+
+def _groq_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """The schema with optional fields that also accept null or "".
+
+    Groq checks every tool call against its schema and rejects the whole reply when a model fills
+    an optional field with null or "" (as it does when asked to leave fields empty to browse).
+    Those empty values are dropped again before the tool runs, so the tools see the same input.
+    """
+    required = set(schema.get("required", []))
+    properties: dict[str, Any] = {}
+    for name, prop in schema.get("properties", {}).items():
+        if name not in required:
+            prop = dict(prop)
+            types = prop.get("type")
+            if isinstance(types, str):
+                prop["type"] = [types, "null"]
+            if "enum" in prop:
+                prop["enum"] = [*prop["enum"], "", None]
+        properties[name] = prop
+    return {**schema, "properties": properties}
 
 
 def to_groq_request(params: dict[str, Any]) -> dict[str, Any]:
@@ -67,7 +96,7 @@ def to_groq_request(params: dict[str, Any]) -> dict[str, Any]:
         "messages": messages,
         "tools": [
             *(
-                _function(tool["name"], tool["description"], tool["input_schema"])
+                _function(tool["name"], tool["description"], _groq_schema(tool["input_schema"]))
                 for tool in params["tools"]
             ),
             _function(ANSWER_TOOL, "Give the customer your final answer.", ANSWER_SCHEMA),
@@ -111,8 +140,14 @@ def _to_groq_messages(message: dict[str, Any]) -> list[dict[str, Any]]:
     return [out]
 
 
-def from_groq_response(completion: Any) -> SimpleNamespace:
-    """The completion in the shape `run_chat` reads from Anthropic."""
+def from_groq_response(
+    completion: Any, optional_fields: dict[str, set[str]] | None = None
+) -> SimpleNamespace:
+    """The completion in the shape `run_chat` reads from Anthropic.
+
+    `optional_fields` names each tool's optional fields; null or "" in those is dropped.
+    """
+    optional_fields = optional_fields or {}
     choice = completion.choices[0]
     stop_reason = _STOP_REASONS.get(choice.finish_reason, choice.finish_reason)
     content: list[SimpleNamespace] = []
@@ -130,7 +165,10 @@ def from_groq_response(completion: Any) -> SimpleNamespace:
                     type="tool_use",
                     id=call.id,
                     name=call.function.name,
-                    input=_arguments(call.function.arguments),
+                    input=_drop_empty(
+                        _arguments(call.function.arguments),
+                        optional_fields.get(call.function.name, set()),
+                    ),
                 )
             )
     else:
@@ -154,6 +192,16 @@ def _arguments(raw: str | None) -> Any:
         return json.loads(raw or "{}")
     except ValueError:
         return raw
+
+
+def _drop_empty(arguments: Any, optional: set[str]) -> Any:
+    if not isinstance(arguments, dict):
+        return arguments
+    return {
+        key: value
+        for key, value in arguments.items()
+        if not (key in optional and value in (None, ""))
+    }
 
 
 def _answer_json(raw: str | None) -> str:

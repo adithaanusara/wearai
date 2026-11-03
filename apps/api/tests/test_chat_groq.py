@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.services.chat import Turn, build_request, run_chat
-from app.services.chat_groq import from_groq_response, to_groq_request
+from app.services.chat_groq import _optional_fields, from_groq_response, to_groq_request
 from tests.chat_fakes import text_block, tool_use
 
 
@@ -35,7 +35,7 @@ class TranslatingGateway:
 
     def create(self, **params):
         self.requests.append(to_groq_request(params))
-        return from_groq_response(self.script.pop(0))
+        return from_groq_response(self.script.pop(0), _optional_fields(params["tools"]))
 
 
 def test_the_request_becomes_an_openai_style_chat_with_function_tools() -> None:
@@ -139,3 +139,43 @@ def test_a_truncated_answer_is_reported_as_such() -> None:
     assert from_groq_response(completion("cut off", finish_reason="length")).stop_reason == (
         "max_tokens"
     )
+
+
+def test_optional_tool_fields_accept_empty_values_that_groq_would_otherwise_reject() -> None:
+    request = to_groq_request(build_request([{"role": "user", "content": "recommend something"}]))
+    schemas = {
+        tool["function"]["name"]: tool["function"]["parameters"] for tool in request["tools"]
+    }
+
+    search = schemas["search_products"]["properties"]
+    assert search["max_price"]["type"] == ["integer", "null"]
+    assert {"", None} <= set(search["gender"]["enum"])
+    assert {"", None} <= set(search["category"]["enum"])
+    # Required fields keep their strict schema.
+    assert schemas["get_product"]["properties"]["product"] == {
+        "type": "string",
+        "description": "Product id or slug.",
+    }
+    assert None not in schemas["get_store_info"]["properties"]["topic"]["enum"]
+
+
+@pytest.mark.usefixtures("catalogue")
+def test_empty_optional_fields_are_dropped_before_the_tool_runs(db: Session) -> None:
+    browse = (
+        '{"query": "", "gender": "", "category": "", "max_price": null,'
+        ' "on_sale": false, "new_only": false}'
+    )
+    gateway = TranslatingGateway(
+        completion(finish_reason="tool_calls", tool_calls=[groq_call("search_products", browse)]),
+        completion(
+            finish_reason="tool_calls",
+            tool_calls=[groq_call("answer", '{"text": "Here you go.", "product_ids": []}', "c2")],
+        ),
+    )
+
+    result = run_chat(gateway, db, [Turn("user", "Can you recommend some clothing products?")])
+
+    assert result.outcome == "ok"
+    tool_result = gateway.requests[1]["messages"][-1]["content"]
+    assert "invalid" not in tool_result.lower() and "error" not in tool_result.lower()
+    assert json.loads(tool_result)  # a real product list, not a validation error
