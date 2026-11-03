@@ -1,11 +1,18 @@
 import json
 from types import SimpleNamespace
 
+import groq
+import httpx
 import pytest
 from sqlalchemy.orm import Session
 
-from app.services.chat import Turn, build_request, run_chat
-from app.services.chat_groq import _optional_fields, from_groq_response, to_groq_request
+from app.services.chat import ChatUnavailableError, Turn, build_request, run_chat
+from app.services.chat_groq import (
+    GroqGateway,
+    _optional_fields,
+    from_groq_response,
+    to_groq_request,
+)
 from tests.chat_fakes import text_block, tool_use
 
 
@@ -179,3 +186,61 @@ def test_empty_optional_fields_are_dropped_before_the_tool_runs(db: Session) -> 
     tool_result = gateway.requests[1]["messages"][-1]["content"]
     assert "invalid" not in tool_result.lower() and "error" not in tool_result.lower()
     assert json.loads(tool_result)  # a real product list, not a validation error
+
+
+def groq_error(code: str, status: int = 400) -> groq.APIStatusError:
+    response = httpx.Response(status, request=httpx.Request("POST", "https://api.groq.com"))
+    error_class = groq.BadRequestError if status == 400 else groq.RateLimitError
+    return error_class("rejected", response=response, body={"error": {"code": code}})
+
+
+class ScriptedClient:
+    """Stands in for groq.Groq: each create() raises or returns the next scripted item."""
+
+    def __init__(self, *outcomes) -> None:
+        self.outcomes = list(outcomes)
+        self.calls = 0
+        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
+
+    def _create(self, **_request):
+        self.calls += 1
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+
+def gateway_with(client: ScriptedClient) -> GroqGateway:
+    gateway = GroqGateway("test-key")
+    gateway._client = client
+    return gateway
+
+
+def test_a_rejected_tool_call_is_asked_again_once() -> None:
+    client = ScriptedClient(
+        groq_error("tool_use_failed"), completion('{"text": "Hi", "product_ids": []}')
+    )
+
+    response = gateway_with(client).create(**build_request([{"role": "user", "content": "hi"}]))
+
+    assert client.calls == 2
+    assert json.loads(response.content[0].text)["text"] == "Hi"
+
+
+def test_a_second_rejected_tool_call_makes_the_assistant_unavailable() -> None:
+    client = ScriptedClient(groq_error("tool_use_failed"), groq_error("tool_use_failed"))
+
+    with pytest.raises(ChatUnavailableError):
+        gateway_with(client).create(**build_request([{"role": "user", "content": "hi"}]))
+    assert client.calls == 2
+
+
+@pytest.mark.parametrize(
+    ("code", "status"), [("invalid_api_key", 400), ("rate_limit_exceeded", 429)]
+)
+def test_other_provider_errors_are_not_asked_again(code: str, status: int) -> None:
+    client = ScriptedClient(groq_error(code, status))
+
+    with pytest.raises(ChatUnavailableError):
+        gateway_with(client).create(**build_request([{"role": "user", "content": "hi"}]))
+    assert client.calls == 1

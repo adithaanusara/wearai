@@ -42,15 +42,34 @@ class GroqGateway:
         )
 
     def create(self, **params: Any) -> Any:
-        try:
-            completion = self._client.chat.completions.create(**to_groq_request(params))
-        except groq.APIError as error:
-            # Only the kind of error is logged: no message text, and nothing that could hold a key.
-            status = getattr(error, "status_code", None)
-            log = logger.error if status in (400, 401, 403, 404) else logger.warning
-            log("chat provider error: %s status=%s", type(error).__name__, status)
-            raise ChatUnavailableError from error
+        request = to_groq_request(params)
+        # The model's reply is sampled, so a tool call Groq rejected (code "tool_use_failed") is
+        # usually fine when asked again. One more try, then the visitor sees "unavailable".
+        for attempt in range(2):
+            try:
+                completion = self._client.chat.completions.create(**request)
+                break
+            except groq.APIError as error:
+                status = getattr(error, "status_code", None)
+                code = _error_code(error)
+                if code == "tool_use_failed" and attempt == 0:
+                    logger.warning("chat provider rejected a tool call; asking again")
+                    continue
+                # Only the kind of error is logged: no message text, nothing that could hold a key.
+                log = logger.error if status in (400, 401, 403, 404) else logger.warning
+                log("chat provider error: %s status=%s code=%s", type(error).__name__, status, code)
+                raise ChatUnavailableError from error
         return from_groq_response(completion, _optional_fields(params["tools"]))
+
+
+def _error_code(error: groq.APIError) -> str | None:
+    """Groq's short error code, such as "tool_use_failed" or "rate_limit_exceeded"."""
+    body = getattr(error, "body", None)
+    if isinstance(body, dict):
+        inner = body.get("error", body)
+        if isinstance(inner, dict) and isinstance(inner.get("code"), str):
+            return inner["code"]
+    return None
 
 
 def _optional_fields(tools: list[dict[str, Any]]) -> dict[str, set[str]]:
