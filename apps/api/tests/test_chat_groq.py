@@ -188,10 +188,15 @@ def test_empty_optional_fields_are_dropped_before_the_tool_runs(db: Session) -> 
     assert json.loads(tool_result)  # a real product list, not a validation error
 
 
-def groq_error(code: str, status: int = 400) -> groq.APIStatusError:
+def groq_error(
+    code: str, status: int = 400, failed_generation: str | None = None
+) -> groq.APIStatusError:
     response = httpx.Response(status, request=httpx.Request("POST", "https://api.groq.com"))
     error_class = groq.BadRequestError if status == 400 else groq.RateLimitError
-    return error_class("rejected", response=response, body={"error": {"code": code}})
+    body: dict = {"code": code}
+    if failed_generation is not None:
+        body["failed_generation"] = failed_generation
+    return error_class("rejected", response=response, body={"error": body})
 
 
 class ScriptedClient:
@@ -244,3 +249,72 @@ def test_other_provider_errors_are_not_asked_again(code: str, status: int) -> No
     with pytest.raises(ChatUnavailableError):
         gateway_with(client).create(**build_request([{"role": "user", "content": "hi"}]))
     assert client.calls == 1
+
+
+# What Groq returned on Render for "which catogory have women section".
+PROSE_ANSWER = (
+    '{"name": "answer", "arguments": We have women\u2019s items in the following categories: '
+    't\u2011shirts, leggings, hoodies, and shorts. \n\nproduct_ids: []"}'
+)
+
+
+@pytest.mark.parametrize(
+    ("failed_generation", "text"),
+    [
+        (
+            PROSE_ANSWER,
+            "We have women\u2019s items in the following categories: "
+            "t\u2011shirts, leggings, hoodies, and shorts.",
+        ),
+        (
+            '{"name": "answer", "arguments": {"text": "Hi \\"there\\"", "product_ids": [}}',
+            'Hi "there"',
+        ),
+        ('{"name": "answer", "arguments": {"product_ids": ["a"], "txt": "Hi"}}', None),
+        ('{"name": "answer", "arguments": {"text": "Hi there", "product_ids": []}}', "Hi there"),
+        ('{"name": "answer", "arguments": "Plain words."}', "Plain words."),
+    ],
+)
+def test_a_rejected_answer_keeps_its_text_without_asking_again(
+    failed_generation: str, text: str | None
+) -> None:
+    client = ScriptedClient(
+        groq_error("tool_use_failed", failed_generation=failed_generation),
+        completion('{"text": "Asked again", "product_ids": []}'),
+    )
+
+    response = gateway_with(client).create(**build_request([{"role": "user", "content": "hi"}]))
+
+    expected = text if text is not None else "Asked again"
+    assert json.loads(response.content[0].text) == {"text": expected, "product_ids": []}
+    assert response.stop_reason == "end_turn"
+    assert client.calls == (1 if text is not None else 2)
+
+
+def test_a_rejected_call_to_another_tool_is_asked_again() -> None:
+    client = ScriptedClient(
+        groq_error(
+            "tool_use_failed",
+            failed_generation='{"name": "search_products", "arguments": women stuff}',
+        ),
+        completion('{"text": "Asked again", "product_ids": []}'),
+    )
+
+    response = gateway_with(client).create(**build_request([{"role": "user", "content": "hi"}]))
+
+    assert client.calls == 2
+    assert json.loads(response.content[0].text)["text"] == "Asked again"
+
+
+@pytest.mark.usefixtures("catalogue")
+def test_a_rejected_answer_reaches_the_visitor(db: Session) -> None:
+    gateway = gateway_with(
+        ScriptedClient(groq_error("tool_use_failed", failed_generation=PROSE_ANSWER))
+    )
+
+    result = run_chat(gateway, db, [Turn("user", "which catogory have women section")])
+
+    assert result.outcome == "ok"
+    assert result.text.startswith("We have women")
+    assert "product_ids" not in result.text
+    assert result.product_ids == []

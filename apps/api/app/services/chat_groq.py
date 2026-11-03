@@ -7,6 +7,7 @@ safety checks around them stay the same whichever provider answers.
 
 import json
 import logging
+import re
 from types import SimpleNamespace
 from typing import Any
 
@@ -44,7 +45,8 @@ class GroqGateway:
     def create(self, **params: Any) -> Any:
         request = to_groq_request(params)
         # The model's reply is sampled, so a tool call Groq rejected (code "tool_use_failed") is
-        # usually fine when asked again. One more try, then the visitor sees "unavailable".
+        # usually fine when asked again. A rejected final answer is kept instead: gpt-oss sometimes
+        # writes it as prose rather than JSON, and Groq returns that text with the error.
         for attempt in range(2):
             try:
                 completion = self._client.chat.completions.create(**request)
@@ -52,9 +54,14 @@ class GroqGateway:
             except groq.APIError as error:
                 status = getattr(error, "status_code", None)
                 code = _error_code(error)
-                if code == "tool_use_failed" and attempt == 0:
-                    logger.warning("chat provider rejected a tool call; asking again")
-                    continue
+                if code == "tool_use_failed":
+                    answer = _rejected_answer(error)
+                    if answer is not None:
+                        logger.warning("chat provider rejected the answer's format; kept its text")
+                        return _answer_response(answer)
+                    if attempt == 0:
+                        logger.warning("chat provider rejected a tool call; asking again")
+                        continue
                 # Only the kind of error is logged: no message text, nothing that could hold a key.
                 log = logger.error if status in (400, 401, 403, 404) else logger.warning
                 log("chat provider error: %s status=%s code=%s", type(error).__name__, status, code)
@@ -62,14 +69,62 @@ class GroqGateway:
         return from_groq_response(completion, _optional_fields(params["tools"]))
 
 
+def _error_body(error: groq.APIError) -> dict[str, Any]:
+    body = getattr(error, "body", None)
+    if not isinstance(body, dict):
+        return {}
+    inner = body.get("error", body)
+    return inner if isinstance(inner, dict) else {}
+
+
 def _error_code(error: groq.APIError) -> str | None:
     """Groq's short error code, such as "tool_use_failed" or "rate_limit_exceeded"."""
-    body = getattr(error, "body", None)
-    if isinstance(body, dict):
-        inner = body.get("error", body)
-        if isinstance(inner, dict) and isinstance(inner.get("code"), str):
-            return inner["code"]
-    return None
+    code = _error_body(error).get("code")
+    return code if isinstance(code, str) else None
+
+
+# What Groq returns for a rejected call: {"name": "answer", "arguments": <whatever the model wrote>}
+_REJECTED_ANSWER = re.compile(
+    r'^\s*\{\s*"name"\s*:\s*"answer"\s*,\s*"arguments"\s*:\s*(.*?)\s*\}?\s*$', re.S
+)
+_TEXT_FIELD = re.compile(r'"text"\s*:\s*"((?:[^"\\]|\\.)*)"')
+# A product_ids line the model wrote into the prose; ids from it are not trusted, so it is removed.
+_PRODUCT_IDS_LINE = re.compile(r'\s*"?product_ids"?\s*[:=]\s*\[[^\]]*\]\s*"?\s*$', re.I)
+
+
+def _rejected_answer(error: groq.APIError) -> str | None:
+    """The answer's text from a rejected call to the answer tool, or None for any other call."""
+    generation = _error_body(error).get("failed_generation")
+    if not isinstance(generation, str):
+        return None
+    match = _REJECTED_ANSWER.match(generation)
+    if match is None:
+        return None
+    raw = match.group(1).strip()
+    if raw.startswith("{"):
+        # JSON the model broke elsewhere (often in product_ids): keep only a readable "text".
+        found = _TEXT_FIELD.search(raw)
+        if found is None:
+            return None
+        try:
+            return json.loads(f'"{found.group(1)}"').strip() or None
+        except ValueError:
+            return None
+    text = _PRODUCT_IDS_LINE.sub("", raw).strip().strip('"').strip()
+    return text or None
+
+
+def _answer_response(text: str) -> SimpleNamespace:
+    """A final answer in the shape `run_chat` reads, recommending no products.
+
+    Groq does not report the tokens a rejected reply used, so they are not counted here.
+    """
+    return SimpleNamespace(
+        content=[SimpleNamespace(type="text", text=json.dumps({"text": text, "product_ids": []}))],
+        stop_reason="end_turn",
+        usage=SimpleNamespace(input_tokens=0, output_tokens=0),
+        _request_id=None,
+    )
 
 
 def _optional_fields(tools: list[dict[str, Any]]) -> dict[str, set[str]]:
