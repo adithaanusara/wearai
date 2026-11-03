@@ -90,7 +90,15 @@ class AnthropicGateway:
 @lru_cache
 def get_gateway() -> ModelGateway | None:
     """None when the assistant is off or has no key; the endpoint then answers 503."""
-    if not settings.chat_enabled or not settings.anthropic_api_key:
+    if not settings.chat_enabled:
+        return None
+    if settings.chat_provider == "groq":
+        if not settings.groq_api_key:
+            return None
+        from app.services.chat_groq import GroqGateway  # it imports this module
+
+        return GroqGateway(settings.groq_api_key)
+    if not settings.anthropic_api_key:
         return None
     return AnthropicGateway(settings.anthropic_api_key)
 

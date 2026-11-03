@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     store_name: str = "WEARAI"
     chat_enabled: bool = True
+    # "groq" uses Groq's API (it has a free tier) with `groq_model`; the Anthropic-only settings
+    # below (thinking, effort, fallbacks, chat_model) are then ignored.
+    chat_provider: Literal["anthropic", "groq"] = "anthropic"
+    groq_api_key: str | None = None
+    groq_model: str = "openai/gpt-oss-120b"
     chat_model: str = "claude-opus-5"
     # The next three suit Claude Opus 5 and Sonnet 5. For Haiku 4.5 set thinking, effort and
     # fallbacks off (CHAT_ADAPTIVE_THINKING=false, CHAT_EFFORT=none, CHAT_REFUSAL_FALLBACKS=false).
