@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ApiError,
+  SERVER_REQUEST_TIMEOUT_MS,
   buildQuery,
   getProduct,
   getMe,
@@ -380,5 +381,30 @@ describe('orNotFound', () => {
     const failure = new ApiError(500, 'boom');
 
     await expect(orNotFound(Promise.reject(failure))).rejects.toBe(failure);
+  });
+});
+
+describe('server-side timeout', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('gives up on a stalled API and reports the store as unavailable', async () => {
+    // The timeout fires at once here, standing in for 20 seconds of a host that never answers.
+    const controller = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(controller.signal);
+    const fetchMock = vi.fn().mockImplementation(
+      (_url: string, options: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => reject(options.signal?.reason));
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = getProduct('essential-fitted-tee').catch((error: unknown) => error);
+    controller.abort(new DOMException('The operation timed out.', 'TimeoutError'));
+    const error = await result;
+
+    expect(timeout).toHaveBeenCalledWith(SERVER_REQUEST_TIMEOUT_MS);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(503);
   });
 });

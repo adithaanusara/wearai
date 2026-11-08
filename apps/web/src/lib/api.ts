@@ -32,6 +32,14 @@ const API_URL = process.env.API_URL ?? 'http://localhost:8000';
 
 const baseUrl = () => (typeof window === 'undefined' ? API_URL : '');
 
+/**
+ * How long a page waits for the API while rendering on the server. Without a limit, a page waited
+ * until Vercel stopped it at 300 seconds whenever the API host stalled (its free instance waking
+ * up, or not answering at all). After this the request fails like any other, and the page shows
+ * its error screen with a way to try again. The browser keeps no limit: chat replies can be slow.
+ */
+export const SERVER_REQUEST_TIMEOUT_MS = 20_000;
+
 export const MAX_QUERY_LENGTH = 100;
 
 /** One thing wrong with a request, as reported by the API (a 422). */
@@ -125,6 +133,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     response = await fetch(`${baseUrl()}/api/v1${path}${buildQuery(query)}`, {
       method,
       cache: 'no-store',
+      signal:
+        typeof window === 'undefined' ? AbortSignal.timeout(SERVER_REQUEST_TIMEOUT_MS) : undefined,
       headers: {
         Accept: 'application/json',
         ...(body === undefined || isForm ? {} : { 'Content-Type': 'application/json' }),
