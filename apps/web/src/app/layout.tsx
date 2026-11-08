@@ -12,6 +12,11 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
+// Render pages in Singapore, next to the API (Render, Singapore). Each page makes several API
+// calls, and from Vercel's default region (Washington, D.C.) every one of them crossed the Pacific.
+// Every page and route below this layout inherits it.
+export const preferredRegion = 'sin1';
+
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
